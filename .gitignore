@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Production builds
+dist/
+build/
+
+# Uploaded files
+uploads/
+
+# Local MongoDB backup
+server/mongo-backup/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Cache
+.cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+tmp/
+temp/
+
+# Backup files
+*.bak
+*.backup
