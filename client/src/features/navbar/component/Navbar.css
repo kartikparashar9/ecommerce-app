@@ -1,0 +1,618 @@
+/* ===============================
+   GOOGLE FONT
+================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+/* ===============================
+   ROOT VARIABLES
+================================== */
+
+:root {
+  --primary: #6c63ff;
+  --primary-hover: #564ef5;
+
+  --white: #ffffff;
+  --black: #222222;
+
+  --text: #444444;
+  --light-text: #777777;
+
+  --bg: #f6f7fb;
+  --card: #ffffff;
+
+  --border: #ececec;
+
+  --shadow: 0 10px 30px rgba(0,0,0,.08);
+
+  --transition: .35s ease;
+}
+
+/* ===============================
+   DARK MODE
+================================== */
+
+body.dark-theme {
+
+  --bg: #111827;
+
+  --card: #1f2937;
+
+  --text: #f1f5f9;
+
+  --light-text: #cbd5e1;
+
+  --border: #374151;
+
+  --shadow: 0 10px 30px rgba(0,0,0,.45);
+}
+
+/* ===============================
+   GLOBAL
+================================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+
+    font-family:"Poppins",sans-serif;
+
+    background:var(--bg);
+
+    color:var(--text);
+
+    transition:var(--transition);
+
+}
+
+a{
+
+    text-decoration:none;
+
+    color:inherit;
+
+}
+
+ul{
+
+    list-style:none;
+
+}
+
+/* ===============================
+   NAVBAR
+================================== */
+
+.navbar{
+
+    position:sticky;
+
+    top:0;
+
+    left:0;
+
+    width:100%;
+
+    height:82px;
+
+    background:rgba(255,255,255,.82);
+
+    backdrop-filter:blur(18px);
+
+    -webkit-backdrop-filter:blur(18px);
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:0 60px;
+
+    z-index:999;
+
+    transition:.4s;
+
+}
+
+.dark-theme .navbar{
+
+    background:rgba(17,24,39,.88);
+
+}
+
+/* ===============================
+   SHADOW ON SCROLL
+================================== */
+
+.navbar-shadow{
+
+    box-shadow:var(--shadow);
+
+}
+
+/* ===============================
+   LEFT SECTION
+================================== */
+
+.navbar-left{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:14px;
+
+    cursor:pointer;
+
+}
+
+.navbar-logo{
+
+    width:48px;
+
+    height:48px;
+
+    object-fit:cover;
+
+    border-radius:12px;
+
+    transition:.4s;
+
+}
+
+.navbar-logo:hover{
+
+    transform:rotate(-10deg) scale(1.08);
+
+}
+
+.logo-title{
+
+    font-size:1.7rem;
+
+    font-weight:700;
+
+    color:var(--text);
+
+}
+
+.logo-title span{
+
+    color:var(--primary);
+
+}
+
+/* ===============================
+   CENTER
+================================== */
+
+.navbar-center{
+
+    display:flex;
+
+    align-items:center;
+
+}
+
+.nav-links{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:34px;
+
+}
+
+.nav-links li{
+
+    position:relative;
+
+    cursor:pointer;
+
+    font-size:15px;
+
+    font-weight:500;
+
+    transition:.3s;
+
+}
+
+.nav-links li a{
+
+    color:var(--text);
+
+    transition:.3s;
+
+}
+
+.nav-links li:hover a{
+
+    color:var(--primary);
+
+}
+
+/* Animated underline */
+
+.nav-links li::after{
+
+    content:"";
+
+    position:absolute;
+
+    left:0;
+
+    bottom:-7px;
+
+    width:0;
+
+    height:2px;
+
+    border-radius:10px;
+
+    background:var(--primary);
+
+    transition:.35s;
+
+}
+
+.nav-links li:hover::after{
+
+    width:100%;
+
+}
+
+/* ===============================
+   RIGHT
+================================== */
+
+.navbar-right{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:18px;
+
+}
+
+/* ==========================================
+   SEARCH BAR
+========================================== */
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 10px 18px;
+  min-width: 260px;
+  transition: all 0.35s ease;
+}
+
+.search-box:hover {
+  box-shadow: var(--shadow);
+  border-color: var(--primary);
+}
+
+.search-box input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-family: "Poppins", sans-serif;
+}
+
+.search-box input::placeholder {
+  color: var(--light-text);
+}
+
+.search-icon {
+  color: var(--light-text);
+  font-size: 18px;
+}
+
+/* ==========================================
+   ICON BUTTON
+========================================== */
+
+.icon-btn {
+  width: 46px;
+  height: 46px;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 21px;
+  transition: all .3s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,.05);
+}
+
+.icon-btn:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ==========================================
+   CART & WISHLIST
+========================================== */
+
+.icon-wrapper {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  font-size: 22px;
+  transition: all .35s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,.05);
+}
+
+.icon-wrapper:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 20px;
+  height: 20px;
+  background: crimson;
+  color: white;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ==========================================
+   PROFILE
+========================================== */
+
+.profile-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 6px 14px 6px 8px;
+  transition: all .35s ease;
+}
+
+.profile-box:hover {
+  box-shadow: var(--shadow);
+  border-color: var(--primary);
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.username {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* ==========================================
+   ICON ANIMATION
+========================================== */
+
+.icon-wrapper svg,
+.icon-btn svg {
+  transition: transform .3s ease;
+}
+
+.icon-wrapper:hover svg {
+  transform: scale(1.15);
+}
+
+.icon-btn:hover svg {
+  transform: rotate(180deg);
+}
+
+/* ==========================================
+   LOGO ANIMATION
+========================================== */
+
+.logo-title {
+  transition: color .3s ease;
+}
+
+.navbar-left:hover .logo-title {
+  color: var(--primary);
+}
+
+/* ==========================================
+   RESPONSIVE
+========================================== */
+
+@media (max-width: 1200px) {
+
+  .navbar {
+    padding: 0 30px;
+  }
+
+  .search-box {
+    min-width: 200px;
+  }
+
+  .nav-links {
+    gap: 22px;
+  }
+
+}
+
+@media (max-width: 992px) {
+
+  .navbar {
+    padding: 15px 20px;
+    height: auto;
+    flex-wrap: wrap;
+    gap: 18px;
+  }
+
+  .navbar-center {
+    width: 100%;
+    order: 3;
+    justify-content: center;
+  }
+
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 18px;
+  }
+
+  .navbar-right {
+    margin-left: auto;
+  }
+
+  .search-box {
+    min-width: 180px;
+  }
+
+}
+
+@media (max-width: 768px) {
+
+  .username {
+    display: none;
+  }
+
+  .search-box {
+    min-width: 150px;
+    padding: 8px 14px;
+  }
+
+  .search-box input {
+    font-size: 13px;
+  }
+
+  .logo-title {
+    font-size: 1.4rem;
+  }
+
+  .nav-links {
+    gap: 15px;
+  }
+
+}
+
+@media (max-width: 576px) {
+
+  .navbar {
+    padding: 12px;
+  }
+
+  .navbar-left {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .navbar-right {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .navbar-center {
+    width: 100%;
+  }
+
+  .search-box {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .nav-links {
+    gap: 12px;
+  }
+
+  .nav-links li {
+    font-size: 14px;
+  }
+
+}
+
+
+.profile-wrapper{
+    position:relative;
+}
+
+.profile-dropdown{
+    position:absolute;
+    top:60px;
+    right:0;
+    width:260px;
+    background:#fff;
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.12);
+    z-index:1000;
+}
+
+.dropdown-header{
+    padding:20px;
+    text-align:center;
+    border-bottom:1px solid #eee;
+}
+
+.dropdown-avatar{
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    object-fit:cover;
+    margin-bottom:10px;
+}
+
+.dropdown-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
+    padding:14px 18px;
+    text-decoration:none;
+    color:#333;
+    background:none;
+    border:none;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.dropdown-item:hover{
+    background:#f5f5f5;
+}
+
+.logout-btn{
+    color:#ef4444;
+}

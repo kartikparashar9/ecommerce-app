@@ -1,0 +1,379 @@
+/* ==========================================
+   FOOTER VARIABLES
+========================================== */
+
+.footer {
+
+  background: var(--card);
+
+  color: var(--text);
+
+  padding: 70px 60px 25px;
+
+  border-top: 1px solid var(--border);
+
+  transition: all .35s ease;
+
+}
+
+
+/* ==========================================
+   FOOTER CONTAINER
+========================================== */
+
+.footer-container {
+
+  max-width: 1400px;
+
+  margin:auto;
+
+  display:grid;
+
+  grid-template-columns: 2fr 1fr 1fr 1.3fr;
+
+  gap:50px;
+
+}
+
+
+/* ==========================================
+   FOOTER LOGO
+========================================== */
+
+.footer-logo {
+
+  display:flex;
+
+  align-items:center;
+
+  gap:15px;
+
+  margin-bottom:20px;
+
+}
+
+
+.footer-logo img {
+
+  width:55px;
+
+  height:55px;
+
+  border-radius:15px;
+
+  object-fit:cover;
+
+  transition:.4s;
+
+}
+
+
+.footer-logo img:hover {
+
+  transform:rotate(10deg) scale(1.1);
+
+}
+
+
+.footer-logo h2 {
+
+  font-size:28px;
+
+  color:var(--text);
+
+}
+
+
+.footer-logo span {
+
+  color:var(--primary);
+
+}
+
+
+
+/* ==========================================
+   ABOUT
+========================================== */
+
+.footer-about p {
+
+  max-width:420px;
+
+  line-height:1.8;
+
+  color:var(--light-text);
+
+  font-size:15px;
+
+}
+
+
+
+/* ==========================================
+   SOCIAL ICONS
+========================================== */
+
+.social-icons {
+
+  display:flex;
+
+  gap:14px;
+
+  margin-top:25px;
+
+}
+
+
+.social-icons a {
+
+  width:42px;
+
+  height:42px;
+
+  border-radius:50%;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  background:var(--bg);
+
+  color:var(--text);
+
+  font-size:18px;
+
+  transition:.35s;
+
+}
+
+
+.social-icons a:hover {
+
+  background:var(--primary);
+
+  color:white;
+
+}
+
+
+
+/* ==========================================
+   FOOTER COLUMNS
+========================================== */
+
+.footer-column h3 {
+
+  font-size:20px;
+
+  margin-bottom:22px;
+
+  color:var(--text);
+
+  position:relative;
+
+}
+
+
+.footer-column h3::after {
+
+  content:"";
+
+  position:absolute;
+
+  left:0;
+
+  bottom:-8px;
+
+  width:40px;
+
+  height:3px;
+
+  background:var(--primary);
+
+  border-radius:20px;
+
+}
+
+
+
+.footer-column ul {
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:14px;
+
+}
+
+
+
+.footer-column li {
+
+  color:var(--light-text);
+
+  font-size:14px;
+
+  line-height:1.6;
+
+}
+
+
+
+.footer-column a {
+
+  transition:.3s;
+
+}
+
+
+
+.footer-column a:hover {
+
+  color:var(--primary);
+
+  padding-left:8px;
+
+}
+
+
+
+/* ==========================================
+   FOOTER BOTTOM
+========================================== */
+
+.footer-bottom {
+
+  margin-top:50px;
+
+  padding-top:25px;
+
+  border-top:1px solid var(--border);
+
+  text-align:center;
+
+  color:var(--light-text);
+
+  font-size:14px;
+
+}
+
+
+.footer-bottom strong {
+
+  color:var(--primary);
+
+}
+
+
+
+/* ==========================================
+   DARK MODE
+========================================== */
+
+.dark-theme .footer {
+
+  background:#111827;
+
+}
+
+
+.dark-theme .social-icons a {
+
+  background:#1f2937;
+
+}
+
+
+
+/* ==========================================
+   RESPONSIVE DESIGN
+========================================== */
+
+
+@media(max-width:1100px){
+
+
+.footer-container{
+
+grid-template-columns:1fr 1fr;
+
+}
+
+
+}
+
+
+
+@media(max-width:768px){
+
+
+.footer{
+
+padding:50px 25px 20px;
+
+}
+
+
+.footer-container{
+
+grid-template-columns:1fr;
+
+gap:35px;
+
+}
+
+
+.footer-about p{
+
+max-width:100%;
+
+}
+
+
+.footer-column h3{
+
+font-size:18px;
+
+}
+
+
+}
+
+
+
+/* ==========================================
+   SMALL DEVICES
+========================================== */
+
+
+@media(max-width:480px){
+
+
+.footer-logo h2{
+
+font-size:22px;
+
+}
+
+
+.social-icons a{
+
+width:38px;
+
+height:38px;
+
+}
+
+
+.footer-bottom{
+
+font-size:13px;
+
+}
+
+
+}

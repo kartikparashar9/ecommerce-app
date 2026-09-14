@@ -1,0 +1,111 @@
+.sales-chart-card {
+    width: 100%;
+    padding: 24px;
+    background: #ffffff;
+    border: 1px solid #e9edf5;
+    border-radius: 18px;
+    box-shadow:
+        0 10px 30px
+        rgba(15, 23, 42, 0.05);
+}
+
+
+.sales-chart-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+
+.sales-chart-header h2 {
+    margin: 0;
+    color: #172554;
+    font-size: 19px;
+    font-weight: 700;
+}
+
+
+.sales-chart-header p {
+    margin: 6px 0 0;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+
+.sales-chart-select {
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    background: #f8fafc;
+    color: #475569;
+    outline: none;
+    cursor: pointer;
+}
+
+
+.sales-chart-select:focus {
+    border-color: #4f46e5;
+}
+
+
+.sales-chart-container {
+    width: 100%;
+    min-height: 320px;
+}
+
+
+/* =========================================
+   LOADING / ERROR
+========================================= */
+
+.sales-chart-state {
+    min-height: 320px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #64748b;
+
+    font-size: 14px;
+
+    background: #f8fafc;
+
+    border-radius: 12px;
+}
+
+
+.sales-chart-state.error {
+    color: #dc2626;
+}
+
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 600px) {
+
+    .sales-chart-card {
+        padding: 18px;
+    }
+
+
+    .sales-chart-header {
+        flex-direction: column;
+    }
+
+
+    .sales-chart-select {
+        width: 100%;
+    }
+
+
+    .sales-chart-container {
+        min-height: 260px;
+    }
+
+}

@@ -1,0 +1,123 @@
+.progress-wrapper {
+  width: 100%;
+  margin: 25px 0 35px;
+}
+
+/* Track */
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+
+  background: #e5e7eb;
+
+  border-radius: 999px;
+
+  overflow: hidden;
+
+  margin-bottom: 25px;
+}
+
+/* Fill */
+
+.progress-fill {
+  height: 100%;
+
+  width: 0%;
+
+  border-radius: inherit;
+
+  background: linear-gradient(
+    90deg,
+    #4f46e5,
+    #7c3aed
+  );
+}
+
+/* Steps */
+
+.progress-steps {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+}
+
+.progress-step {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  flex: 1;
+}
+
+/* Circle */
+
+.step-circle {
+  width: 42px;
+
+  height: 42px;
+
+  border-radius: 50%;
+
+  background: #d1d5db;
+
+  color: #555;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  font-weight: 600;
+
+  transition: all .3s ease;
+}
+
+.step-circle.active {
+  background: linear-gradient(
+    135deg,
+    #4f46e5,
+    #7c3aed
+  );
+
+  color: white;
+
+  box-shadow: 0 10px 20px rgba(79,70,229,.35);
+}
+
+/* Labels */
+
+.progress-step span {
+  margin-top: 8px;
+
+  font-size: 13px;
+
+  font-weight: 500;
+
+  color: #666;
+}
+
+/* Mobile */
+
+@media (max-width:768px) {
+
+  .progress-track {
+    height: 6px;
+  }
+
+  .step-circle {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .progress-step span {
+    font-size: 12px;
+  }
+
+}

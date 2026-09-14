@@ -1,0 +1,7 @@
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { getBusinessApi, createBusinessApi, updateBusinessApi } from "./BussinessApi";
+export const fetchBusiness=createAsyncThunk("business/fetch",async(_,{rejectWithValue})=>{try{return await getBusinessApi()}catch(e){return rejectWithValue(e?.response?.data?.message||"Unable to load business")}});
+export const createBusiness=createAsyncThunk("business/create",async(p,{rejectWithValue})=>{try{return await createBusinessApi(p)}catch(e){return rejectWithValue(e?.response?.data?.message||"Unable to create business")}});
+export const updateBusiness=createAsyncThunk("business/update",async(p,{rejectWithValue})=>{try{return await updateBusinessApi(p)}catch(e){return rejectWithValue(e?.response?.data?.message||"Unable to update business")}});
+const slice=createSlice({name:"business",initialState:{data:null,loading:false,error:null},reducers:{clearBusinessError:s=>{s.error=null}},extraReducers:b=>b.addCase(fetchBusiness.pending,s=>{s.loading=true;s.error=null}).addCase(fetchBusiness.fulfilled,(s,a)=>{s.loading=false;s.data=a.payload?.data??a.payload}).addCase(fetchBusiness.rejected,(s,a)=>{s.loading=false;s.error=a.payload}).addCase(createBusiness.fulfilled,(s,a)=>{s.data=a.payload?.data??a.payload}).addCase(updateBusiness.fulfilled,(s,a)=>{s.data=a.payload?.data??a.payload}).addMatcher(a=>[createBusiness.rejected.type,updateBusiness.rejected.type].includes(a.type),(s,a)=>{s.error=a.payload})});
+export const {clearBusinessError}=slice.actions; export default slice.reducer;

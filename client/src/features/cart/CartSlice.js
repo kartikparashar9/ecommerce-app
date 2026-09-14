@@ -1,0 +1,9 @@
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { getCartApi, addToCartApi, updateCartItemApi, removeCartItemApi, clearCartApi } from "./CartApi";
+const unwrap=d=>d?.data??d;
+export const fetchCart=createAsyncThunk("cart/fetch",async(_, {rejectWithValue})=>{try{return await getCartApi()}catch(e){return rejectWithValue(e?.response?.data?.message||"Unable to load cart")}});
+export const addToCart=createAsyncThunk("cart/add",async(p,{rejectWithValue})=>{try{return await addToCartApi(p)}catch(e){return rejectWithValue(e?.response?.data?.message||"Unable to add item")}});
+export const updateCartItem=createAsyncThunk("cart/update",async({itemId,payload},{rejectWithValue})=>{try{return await updateCartItemApi(itemId,payload)}catch(e){return rejectWithValue(e?.response?.data?.message||"Unable to update cart")}});
+export const removeCartItem=createAsyncThunk("cart/remove",async(id,{rejectWithValue})=>{try{return await removeCartItemApi(id)}catch(e){return rejectWithValue(e?.response?.data?.message||"Unable to remove item")}});
+const slice=createSlice({name:"cart",initialState:{items:[],summary:null,loading:false,error:null},reducers:{clearCartError:s=>{s.error=null}},extraReducers:b=>{const done=(s,a)=>{s.loading=false;const d=unwrap(a.payload);s.items=d?.items||d?.cart?.items||[];s.summary=d?.summary||d?.cart||null};b.addCase(fetchCart.pending,s=>{s.loading=true;s.error=null}).addCase(fetchCart.fulfilled,done).addCase(fetchCart.rejected,(s,a)=>{s.loading=false;s.error=a.payload});[addToCart,updateCartItem,removeCartItem].forEach(t=>b.addCase(t.fulfilled,done).addCase(t.rejected,(s,a)=>{s.loading=false;s.error=a.payload}));}});
+export const {clearCartError}=slice.actions; export default slice.reducer;

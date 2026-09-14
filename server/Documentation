@@ -1,0 +1,138 @@
+backend/
+│
+├── src/
+│
+│   ├── config/
+│   │   ├── db.js
+│   │   ├── redis.js
+│   │   ├── cloudinary.js
+│   │   ├── payment.js
+│   │   └── env.js
+│   │
+│   ├── controllers/
+│   │   ├── auth.controller.js
+│   │   ├── user.controller.js
+│   │   ├── product.controller.js
+│   │   ├── category.controller.js
+│   │   ├── cart.controller.js
+│   │   ├── wishlist.controller.js
+│   │   ├── address.controller.js
+│   │   ├── review.controller.js
+│   │   ├── order.controller.js
+│   │   ├── payment.controller.js
+│   │   └── admin.controller.js
+│   │
+│   ├── services/
+│   │   ├── auth.service.js
+│   │   ├── user.service.js
+│   │   ├── product.service.js
+│   │   ├── category.service.js
+│   │   ├── cart.service.js
+│   │   ├── wishlist.service.js
+│   │   ├── address.service.js
+│   │   ├── review.service.js
+│   │   ├── order.service.js
+│   │   ├── payment.service.js
+│   │   └── admin.service.js
+│   │
+│   ├── models/
+│   │   ├── User.js
+│   │   ├── Product.js
+│   │   ├── Category.js
+│   │   ├── Cart.js
+│   │   ├── Wishlist.js
+│   │   ├── Address.js
+│   │   ├── Review.js
+│   │   ├── Order.js
+│   │   └── Payment.js
+│   │
+│   ├── routes/
+│   │   ├── auth.routes.js
+│   │   ├── user.routes.js
+│   │   ├── product.routes.js
+│   │   ├── category.routes.js
+│   │   ├── cart.routes.js
+│   │   ├── wishlist.routes.js
+│   │   ├── address.routes.js
+│   │   ├── review.routes.js
+│   │   ├── order.routes.js
+│   │   ├── payment.routes.js
+│   │   └── admin.routes.js
+│   │
+│   ├── middlewares/
+│   │   ├── auth.middleware.js
+│   │   ├── role.middleware.js
+│   │   ├── cache.middleware.js
+│   │   ├── rateLimiter.middleware.js
+│   │   ├── upload.middleware.js
+│   │   ├── validate.middleware.js
+│   │   ├── error.middleware.js
+│   │   └── notFound.middleware.js
+│   │
+│   ├── validators/
+│   │   ├── auth.validator.js
+│   │   ├── product.validator.js
+│   │   ├── category.validator.js
+│   │   ├── cart.validator.js
+│   │   ├── wishlist.validator.js
+│   │   ├── address.validator.js
+│   │   ├── review.validator.js
+│   │   ├── order.validator.js
+│   │   └── payment.validator.js
+│   │
+│   ├── cache/
+│   │   ├── product.cache.js
+│   │   ├── category.cache.js
+│   │   ├── user.cache.js
+│   │   ├── order.cache.js
+│   │   └── redisKeys.js
+│   │
+│   ├── utils/
+│   │   ├── ApiError.js
+│   │   ├── ApiResponse.js
+│   │   ├── asyncHandler.js
+│   │   ├── generateToken.js
+│   │   ├── pagination.js
+│   │   ├── calculatePrice.js
+│   │   ├── uploadImage.js
+│   │   └── generateInvoice.js
+│   │
+│   ├── constants/
+│   │   ├── roles.js
+│   │   ├── orderStatus.js
+│   │   ├── paymentStatus.js
+│   │   ├── cacheKeys.js
+│   │   └── messages.js
+│   │
+│   ├── database/
+│   │   ├── seed.js
+│   │   └── dummyData.js
+│   │
+│   ├── docs/
+│   │   ├── API.md
+│   │   ├── DATABASE.md
+│   │   ├── ARCHITECTURE.md
+│   │   └── REDIS.md
+│   │
+│   ├── app.js
+│   └── server.js
+│
+├── uploads/
+├── .env
+├── .env.example
+├── .gitignore
+├── package.json
+└── README.md
+
+
+Golden Rule yaad rakho:
+
+Routes → URL define karte hain.
+Middleware → Request ko verify/modify karte hain.
+Controller → Request receive karta hai aur response bhejta hai.
+Service → Business logic implement karta hai.
+Model → Database structure define karta hai.
+Database → MongoDB connection establish karta hai.
+Config → External services aur app configuration rakhta hai.
+Utils → Reusable helper functions.
+Validator → Incoming data validate karta hai.

@@ -1,0 +1,275 @@
+/* ========================================
+   TOP PRODUCTS CARD
+======================================== */
+
+.top-products-card {
+  width: 100%;
+
+  background: #ffffff;
+
+  border: 1px solid #e8edf5;
+
+  border-radius: 18px;
+
+  padding: 24px;
+
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.04);
+}
+
+/* ========================================
+   HEADER
+======================================== */
+
+.top-products-header {
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 16px;
+
+  margin-bottom: 24px;
+}
+
+.top-products-header h2 {
+  margin: 0;
+
+  color: #172554;
+
+  font-size: 19px;
+
+  font-weight: 700;
+}
+
+.top-products-header p {
+  margin: 5px 0 0;
+
+  color: #64748b;
+
+  font-size: 13px;
+}
+
+.top-products-icon {
+  color: #2563eb;
+}
+
+/* ========================================
+   PRODUCT LIST
+======================================== */
+
+.top-products-list {
+  display: flex;
+
+  flex-direction: column;
+}
+
+/* ========================================
+   PRODUCT ITEM
+======================================== */
+
+.top-product-item {
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+
+  padding: 14px 0;
+
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.top-product-item:last-child {
+  border-bottom: none;
+}
+
+/* ========================================
+   RANK
+======================================== */
+
+.top-product-rank {
+  width: 26px;
+
+  height: 26px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #eff6ff;
+
+  color: #2563eb;
+
+  font-size: 12px;
+
+  font-weight: 700;
+}
+
+/* ========================================
+   IMAGE
+======================================== */
+
+.top-product-image {
+  width: 48px;
+
+  height: 48px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  overflow: hidden;
+
+  border-radius: 12px;
+
+  background: #f8fafc;
+
+  color: #94a3b8;
+}
+
+.top-product-image img {
+  width: 100%;
+
+  height: 100%;
+
+  object-fit: cover;
+}
+
+/* ========================================
+   DETAILS
+======================================== */
+
+.top-product-details {
+  flex: 1;
+
+  min-width: 0;
+}
+
+.top-product-details h3 {
+  margin: 0 0 5px;
+
+  overflow: hidden;
+
+  color: #334155;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.top-product-details span {
+  color: #94a3b8;
+
+  font-size: 12px;
+}
+
+/* ========================================
+   REVENUE
+======================================== */
+
+.top-product-revenue {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-end;
+
+  flex-shrink: 0;
+}
+
+.top-product-revenue strong {
+  color: #172554;
+
+  font-size: 13px;
+}
+
+.top-product-revenue span {
+  margin-top: 4px;
+
+  color: #94a3b8;
+
+  font-size: 10px;
+}
+
+/* ========================================
+   STATES
+======================================== */
+
+.top-products-state {
+  min-height: 300px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  color: #64748b;
+
+  font-size: 14px;
+}
+
+.top-products-state.error {
+  color: #dc2626;
+}
+
+.top-products-empty {
+  min-height: 300px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 10px;
+
+  color: #94a3b8;
+}
+
+.top-products-empty p {
+  margin: 0;
+
+  font-size: 14px;
+}
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+
+@media (max-width: 520px) {
+  .top-products-card {
+    padding: 18px;
+  }
+
+  .top-product-item {
+    gap: 10px;
+  }
+
+  .top-product-image {
+    width: 42px;
+
+    height: 42px;
+  }
+
+  .top-product-revenue {
+    display: none;
+  }
+}

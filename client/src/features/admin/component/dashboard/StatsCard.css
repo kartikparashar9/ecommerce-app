@@ -1,0 +1,236 @@
+/* ========================================
+   STATS CARD
+======================================== */
+
+.stats-card {
+    position: relative;
+
+    min-height: 180px;
+
+    padding: 22px;
+
+    background:
+        rgba(255, 255, 255, 0.95);
+
+    border:
+        1px solid #e9edf5;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 10px 30px
+        rgba(15, 23, 42, 0.05);
+
+    overflow: hidden;
+
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+
+.stats-card::before {
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    width: 5px;
+    height: 100%;
+
+    background:
+        linear-gradient(
+            180deg,
+            #2563eb,
+            #7c3aed
+        );
+}
+
+
+.stats-card:hover {
+    transform:
+        translateY(-5px);
+
+    box-shadow:
+        0 18px 40px
+        rgba(37, 99, 235, 0.12);
+}
+
+
+/* ========================================
+   TOP SECTION
+======================================== */
+
+.stats-card-top {
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content:
+        space-between;
+
+    gap: 16px;
+}
+
+
+/* ========================================
+   INFO
+======================================== */
+
+.stats-card-title {
+    margin: 0;
+
+    color:
+        #64748b;
+
+    font-size: 14px;
+
+    font-weight: 500;
+}
+
+
+.stats-card-value {
+    margin:
+        10px 0 0;
+
+    color:
+        #172554;
+
+    font-size: 28px;
+
+    font-weight: 700;
+
+    letter-spacing:
+        -0.5px;
+}
+
+
+/* ========================================
+   ICON
+======================================== */
+
+.stats-card-icon {
+    width: 52px;
+    height: 52px;
+
+    min-width: 52px;
+
+    border-radius: 15px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background:
+        linear-gradient(
+            135deg,
+            #eff6ff,
+            #eef2ff
+        );
+
+    color:
+        #4f46e5;
+
+    font-size: 24px;
+}
+
+
+/* ========================================
+   BOTTOM SECTION
+======================================== */
+
+.stats-card-bottom {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    margin-top: 26px;
+}
+
+
+/* ========================================
+   CHANGE
+======================================== */
+
+.stats-card-change {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 4px;
+
+    padding:
+        5px 9px;
+
+    border-radius: 8px;
+
+    font-size: 12px;
+
+    font-weight: 600;
+}
+
+
+.stats-card-change.positive {
+    background:
+        #ecfdf5;
+
+    color:
+        #059669;
+}
+
+
+.stats-card-change.negative {
+    background:
+        #fef2f2;
+
+    color:
+        #dc2626;
+}
+
+
+/* ========================================
+   PERIOD
+======================================== */
+
+.stats-card-period {
+    color:
+        #94a3b8;
+
+    font-size: 12px;
+}
+
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+
+@media (max-width: 600px) {
+
+    .stats-card {
+        min-height: 165px;
+
+        padding: 18px;
+    }
+
+
+    .stats-card-value {
+        font-size: 24px;
+    }
+
+
+    .stats-card-icon {
+        width: 46px;
+        height: 46px;
+
+        min-width: 46px;
+
+        font-size: 21px;
+    }
+
+}

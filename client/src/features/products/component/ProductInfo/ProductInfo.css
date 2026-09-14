@@ -1,0 +1,173 @@
+.product-info {
+  width: 100%;
+  min-width: 0;
+}
+
+.product-info__brand {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #2563eb;
+
+  font-size: 13px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.product-info__name {
+  margin: 0;
+
+  color: #10182b;
+
+  font-size: clamp(24px, 2.4vw, 34px);
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.product-info__rating-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  margin-top: 14px;
+}
+
+.product-info__rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  padding: 5px 9px;
+
+  border-radius: 6px;
+
+  background: #16a34a;
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.product-info__reviews {
+  color: #667085;
+  font-size: 13px;
+}
+
+.product-info__category {
+  display: flex;
+  gap: 5px;
+
+  margin-top: 14px;
+
+  color: #667085;
+
+  font-size: 13px;
+}
+
+.product-info__category strong {
+  color: #344054;
+}
+
+.product-info__short-description {
+  margin: 16px 0 0;
+
+  color: #667085;
+
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.product-info__divider {
+  height: 1px;
+
+  margin: 20px 0;
+
+  background: #e8edf4;
+}
+
+.product-info__price-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.product-info__price {
+  color: #10182b;
+
+  font-size: 32px;
+  line-height: 1;
+
+  font-weight: 800;
+}
+
+.product-info__old-price {
+  color: #98a2b3;
+  font-size: 15px;
+}
+
+.product-info__discount {
+  padding: 5px 8px;
+
+  border-radius: 5px;
+
+  background: #e9f8ef;
+  color: #16803a;
+
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.product-info__tax {
+  margin: 8px 0 0;
+
+  color: #667085;
+
+  font-size: 12px;
+}
+
+.product-info__stock {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  margin-top: 18px;
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.product-info__stock--available {
+  color: #16a34a;
+}
+
+.product-info__stock--unavailable {
+  color: #dc2626;
+}
+
+@media (max-width: 768px) {
+  .product-info__name {
+    font-size: 25px;
+  }
+
+  .product-info__price {
+    font-size: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-info__name {
+    font-size: 22px;
+  }
+
+  .product-info__price {
+    font-size: 25px;
+  }
+
+  .product-info__short-description {
+    font-size: 13px;
+  }
+}

@@ -1,0 +1,1160 @@
+/* =========================================================
+   GOOGLE FONT
+========================================================= */
+
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  background: #eef2ff;
+}
+
+
+/* =========================================================
+   SIGNUP PAGE
+========================================================= */
+
+.signup-page {
+  width: 100%;
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 40px;
+
+  background: linear-gradient(
+    135deg,
+    #4f46e5,
+    #7c3aed,
+    #8b5cf6
+  );
+}
+
+
+/* =========================================================
+   MAIN CONTAINER
+========================================================= */
+
+.signup-container {
+  width: 1200px;
+  max-width: 100%;
+  min-height: 700px;
+
+  display: flex;
+
+  overflow: hidden;
+
+  border-radius: 25px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.18);
+}
+
+
+/* =========================================================
+   LEFT SIDE
+========================================================= */
+
+.signup-left {
+  flex: 1;
+
+  color: white;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  padding: 60px;
+
+  text-align: center;
+
+  background:
+    linear-gradient(
+      rgba(79, 70, 229, 0.90),
+      rgba(124, 58, 237, 0.90)
+    ),
+    url("https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=1200&q=80");
+
+  background-size: cover;
+  background-position: center;
+}
+
+.signup-left h1 {
+  font-size: 44px;
+  font-weight: 700;
+
+  margin-bottom: 25px;
+}
+
+.signup-left p {
+  max-width: 420px;
+
+  line-height: 1.8;
+
+  font-size: 17px;
+
+  opacity: 0.95;
+}
+
+.signup-left img {
+  width: 80%;
+  max-width: 420px;
+
+  margin-top: 40px;
+
+  border-radius: 20px;
+
+  object-fit: cover;
+
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+
+/* =========================================================
+   RIGHT SIDE
+========================================================= */
+
+.signup-right {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  padding: 60px;
+}
+
+.signup-right h2 {
+  text-align: center;
+
+  font-size: 34px;
+  font-weight: 600;
+
+  color: #222;
+
+  margin-bottom: 10px;
+}
+
+
+/* =========================================================
+   FORM
+========================================================= */
+
+.signup-form {
+  width: 100%;
+
+  margin-top: 25px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  font-size: 14px;
+
+  color: #374151;
+
+  margin-bottom: 8px;
+
+  font-weight: 500;
+}
+
+
+/* =========================================================
+   NORMAL INPUTS
+========================================================= */
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  height: 54px;
+
+  border-radius: 12px;
+
+  border: 1.5px solid #dcdcdc;
+
+  padding: 0 18px;
+
+  font-size: 15px;
+
+  color: #222;
+
+  background: #ffffff;
+
+  min-width: 0;
+
+  transition:
+    border 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+.form-group input::placeholder {
+  color: #9ca3af;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+
+  border-color: #4f46e5;
+
+  box-shadow:
+    0 0 0 4px rgba(79, 70, 229, 0.15);
+
+  transform: translateY(-2px);
+}
+
+.form-group input:disabled {
+  background: #f3f4f6;
+
+  color: #6b7280;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.error {
+  color: #dc2626;
+
+  font-size: 13px;
+
+  margin-top: 6px;
+}
+
+
+/* =========================================================
+   VERIFIED MESSAGE
+========================================================= */
+
+.verified-message {
+  margin-top: 7px;
+
+  font-size: 13px;
+
+  color: #16a34a;
+
+  font-weight: 600;
+}
+
+.demo-hint {
+  margin-top: 8px;
+
+  font-size: 11.5px;
+
+  color: #9ca3af;
+
+  font-style: italic;
+}
+
+
+/* =========================================================
+   EMAIL / MOBILE INPUT ROW
+   (shared by FormStepTwo email + FormStepThree mobile)
+========================================================= */
+
+.input-row {
+  width: 100%;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 10px;
+}
+
+.input-row input {
+  flex: 1;
+
+  min-width: 0;
+}
+
+
+/* =========================================================
+   SEND / RESEND OTP BUTTON
+   (shared by email + mobile)
+========================================================= */
+
+.otp-btn {
+  flex-shrink: 0;
+
+  height: 54px;
+
+  min-width: 110px;
+
+  padding: 0 17px;
+
+  border: none;
+
+  border-radius: 12px;
+
+  background: linear-gradient(
+    135deg,
+    #4f46e5,
+    #7c3aed
+  );
+
+  color: #ffffff;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  white-space: nowrap;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.otp-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 18px rgba(79, 70, 229, 0.25);
+}
+
+.otp-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.otp-btn:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+
+  box-shadow: none;
+}
+
+
+/* =========================================================
+   OTP CONTAINER
+   (shared by email + mobile)
+========================================================= */
+
+.otp-container {
+  width: 100%;
+
+  margin-top: 14px;
+
+  padding: 16px;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 14px;
+
+  background: #f8f9ff;
+
+  animation: fadeIn 0.3s ease;
+}
+
+
+/* =========================================================
+   OTP TITLE
+========================================================= */
+
+.otp-title {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: baseline;
+
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  margin-bottom: 12px;
+}
+
+.otp-title span {
+  font-size: 13px;
+
+  font-weight: 700;
+
+  color: #374151;
+}
+
+.otp-title small {
+  font-size: 11px;
+
+  color: #9ca3af;
+}
+
+
+/* =========================================================
+   OTP INPUT ROW
+========================================================= */
+
+.otp-input-row {
+  width: 100%;
+
+  display: flex;
+
+  align-items: stretch;
+
+  gap: 10px;
+}
+
+.otp-digit-input {
+  flex: 1;
+
+  min-width: 0;
+
+  height: 48px;
+
+  text-align: center;
+
+  letter-spacing: 6px;
+
+  font-size: 17px;
+
+  font-weight: 700;
+
+  border-radius: 10px;
+
+  border: 1.5px solid #e5e7eb;
+
+  background: #ffffff;
+
+  padding: 0 10px;
+}
+
+.otp-digit-input:focus {
+  outline: none;
+
+  border-color: #4f46e5;
+
+  box-shadow:
+    0 0 0 4px rgba(79, 70, 229, 0.12);
+}
+
+
+/* =========================================================
+   VERIFY OTP BUTTON
+========================================================= */
+
+.verify-btn {
+  flex-shrink: 0;
+
+  height: 48px;
+
+  min-width: 85px;
+
+  padding: 0 16px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background: #16a34a;
+
+  color: #ffffff;
+
+  font-size: 13px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.verify-btn:hover:not(:disabled) {
+  background: #15803d;
+
+  transform: translateY(-2px);
+}
+
+.verify-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.verify-btn:disabled {
+  opacity: 0.45;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   PASSWORD WRAPPER
+========================================================= */
+
+.password-wrapper {
+  position: relative;
+
+  width: 100%;
+}
+
+.password-wrapper input {
+  width: 100%;
+
+  padding-right: 52px;
+}
+
+
+/* =========================================================
+   PASSWORD EYE
+========================================================= */
+
+.password-eye {
+  position: absolute;
+
+  right: 12px;
+
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  width: 34px;
+
+  height: 34px;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  border: none;
+
+  border-radius: 50%;
+
+  background: transparent;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  font-size: 17px;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.password-eye:hover {
+  background: #f3f4f6;
+}
+
+.password-eye:active {
+  transform:
+    translateY(-50%)
+    scale(0.9);
+}
+
+
+/* =========================================================
+   PASSWORD RULES
+========================================================= */
+
+.password-rules {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 8px 15px;
+
+  margin-top: 12px;
+
+  padding: 12px 14px;
+
+  border-radius: 12px;
+
+  background: #f9fafb;
+
+  border: 1px solid #f0f0f0;
+}
+
+.password-rules p {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  margin: 0;
+
+  font-size: 12px;
+
+  line-height: 1.4;
+}
+
+.password-rules .tick {
+  width: 14px;
+
+  text-align: center;
+}
+
+.password-rules .valid {
+  color: #16a34a;
+
+  font-weight: 600;
+}
+
+.password-rules .invalid {
+  color: #9ca3af;
+}
+
+
+/* =========================================================
+   GENERAL VALID / INVALID
+   (used standalone, e.g. FormStepThree verified text)
+========================================================= */
+
+.valid {
+  color: #16a34a;
+}
+
+.invalid {
+  color: #dc2626;
+}
+
+
+/* =========================================================
+   BUTTON GROUP
+========================================================= */
+
+.button-group {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  margin-top: 35px;
+
+  gap: 15px;
+}
+
+.button-group button {
+  flex: 1;
+
+  height: 52px;
+
+  border: none;
+
+  border-radius: 12px;
+
+  font-size: 15px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.3s ease;
+}
+
+.button-group button:hover {
+  transform: translateY(-3px);
+}
+
+.button-group button:active {
+  transform: scale(0.97);
+}
+
+
+/* =========================================================
+   BACK BUTTON
+========================================================= */
+
+.back-btn {
+  background: #ececec;
+
+  color: #333;
+}
+
+.back-btn:hover {
+  background: #dddddd;
+}
+
+
+/* =========================================================
+   SKIP BUTTON
+========================================================= */
+
+.skip-btn {
+  background: transparent;
+
+  border: 2px solid #4f46e5 !important;
+
+  color: #4f46e5;
+}
+
+.skip-btn:hover {
+  background: #4f46e5;
+
+  color: white;
+}
+
+
+/* =========================================================
+   NEXT + SIGNUP
+========================================================= */
+
+.next-btn,
+.signup-btn {
+  background: linear-gradient(
+    135deg,
+    #4f46e5,
+    #7c3aed
+  );
+
+  color: white;
+}
+
+.next-btn:hover,
+.signup-btn:hover {
+  opacity: 0.92;
+}
+
+
+/* =========================================================
+   AVATAR SELECTOR
+========================================================= */
+
+.avatar-container {
+  display: flex;
+
+  justify-content: center;
+
+  gap: 25px;
+
+  margin: 25px 0 30px;
+
+  flex-wrap: wrap;
+}
+
+.avatar-card {
+  width: 170px;
+
+  padding: 20px;
+
+  border: 2px solid #e5e7eb;
+
+  border-radius: 18px;
+
+  background: #ffffff;
+
+  cursor: pointer;
+
+  transition: all 0.35s ease;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.avatar-card:hover {
+  transform: translateY(-8px);
+
+  border-color: #4f46e5;
+
+  box-shadow:
+    0 15px 35px rgba(79, 70, 229, 0.25);
+}
+
+.avatar-card.selected {
+  border-color: #4f46e5;
+
+  background: #eef2ff;
+
+  box-shadow:
+    0 0 20px rgba(79, 70, 229, 0.35);
+}
+
+.avatar-card img {
+  width: 90px;
+
+  height: 90px;
+
+  border-radius: 50%;
+
+  object-fit: cover;
+
+  margin-bottom: 15px;
+}
+
+.avatar-card h4 {
+  color: #333;
+
+  font-size: 16px;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   SELECTED GENDER
+========================================================= */
+
+.selected-gender {
+  margin-top: 8px;
+
+  text-align: center;
+
+  font-size: 13px;
+
+  color: #4f46e5;
+
+  font-weight: 500;
+}
+
+
+/* =========================================================
+   PROGRESS BAR
+========================================================= */
+
+.progress-wrapper {
+  width: 100%;
+
+  margin: 25px 0 35px;
+}
+
+.progress-track {
+  width: 100%;
+
+  height: 8px;
+
+  background: #e5e7eb;
+
+  border-radius: 50px;
+
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+
+  background: linear-gradient(
+    90deg,
+    #4f46e5,
+    #7c3aed
+  );
+
+  transition: width 0.4s ease;
+}
+
+.progress-steps {
+  display: flex;
+
+  justify-content: space-between;
+
+  margin-top: 15px;
+}
+
+.step-circle {
+  width: 36px;
+
+  height: 36px;
+
+  border-radius: 50%;
+
+  background: #d1d5db;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  color: #555;
+
+  font-weight: 600;
+
+  transition: all 0.35s ease;
+}
+
+.step-circle.active {
+  background: #4f46e5;
+
+  color: white;
+
+  transform: scale(1.1);
+}
+
+
+/* =========================================================
+   FADE ANIMATION
+========================================================= */
+
+.fade-in {
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+
+  from {
+    opacity: 0;
+
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
+  }
+
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 992px) {
+
+  .signup-container {
+    flex-direction: column;
+
+    min-height: auto;
+  }
+
+  .signup-left {
+    padding: 40px 30px;
+  }
+
+  .signup-left img {
+    width: 280px;
+  }
+
+  .signup-right {
+    padding: 40px 30px;
+  }
+
+  .signup-left h1 {
+    font-size: 34px;
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+
+  .signup-page {
+    padding: 20px;
+  }
+
+  .signup-container {
+    border-radius: 18px;
+  }
+
+  .signup-left {
+    display: none;
+  }
+
+  .signup-right {
+    width: 100%;
+
+    padding: 30px 22px;
+  }
+
+  .signup-right h2 {
+    font-size: 28px;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .button-group button {
+    width: 100%;
+  }
+
+  .avatar-container {
+    gap: 15px;
+  }
+
+  .avatar-card {
+    width: 140px;
+
+    padding: 15px;
+  }
+
+  .avatar-card img {
+    width: 70px;
+
+    height: 70px;
+  }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+  .signup-page {
+    padding: 12px;
+  }
+
+  .signup-right {
+    padding: 22px 18px;
+  }
+
+  .signup-right h2 {
+    font-size: 24px;
+  }
+
+  .form-group input,
+  .form-group select {
+    height: 48px;
+
+    font-size: 14px;
+  }
+
+  /* Email / Mobile row */
+
+  .input-row {
+    flex-direction: column;
+  }
+
+  .otp-btn {
+    width: 100%;
+
+    height: 48px;
+  }
+
+  /* OTP */
+
+  .otp-title {
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 3px;
+  }
+
+  .otp-input-row {
+    flex-direction: column;
+
+    gap: 8px;
+  }
+
+  .otp-digit-input {
+    width: 100%;
+
+    height: 48px;
+  }
+
+  .verify-btn {
+    width: 100%;
+
+    height: 48px;
+  }
+
+  /* Password */
+
+  .password-rules {
+    grid-template-columns: 1fr;
+  }
+
+  /* Avatar */
+
+  .avatar-card {
+    width: 120px;
+  }
+
+  .avatar-card img {
+    width: 60px;
+
+    height: 60px;
+  }
+
+  /* Progress */
+
+  .step-circle {
+    width: 30px;
+
+    height: 30px;
+
+    font-size: 13px;
+  }
+
+}
+
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding-right: 50px;
+}
+
+.password-eye {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 35px;
+  height: 35px;
+
+  background: transparent;
+  border: none;
+  padding: 0;
+
+  cursor: pointer;
+  color: #333 !important;
+}
+
+.password-eye svg {
+  width: 20px;
+  height: 20px;
+  color: #333 !important;
+  display: block;
+}
+
+.password-eye:hover svg {
+  color: #000 !important;
+}

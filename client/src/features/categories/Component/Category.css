@@ -1,0 +1,506 @@
+.jb-category-page {
+    width: 100%;
+    min-height: 100vh;
+
+    padding: 26px 4.5% 70px;
+
+    background: #ffffff;
+
+    color: #10182b;
+}
+
+/* =========================================
+   HERO
+========================================= */
+
+.jb-category-hero {
+    position: relative;
+
+    width: 100%;
+    min-height: 460px;
+
+    display: grid;
+    grid-template-columns: 48% 52%;
+    align-items: center;
+
+    overflow: hidden;
+
+    border: 1px solid #e7ebf3;
+    border-radius: 24px;
+
+    background:
+        radial-gradient(
+            circle at 78% 35%,
+            rgba(37, 99, 235, 0.08),
+            transparent 30%
+        ),
+        #f8faff;
+
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.06);
+}
+
+.jb-category-hero-content {
+    position: relative;
+    z-index: 4;
+
+    padding: 60px 40px 60px 70px;
+}
+
+.jb-category-eyebrow {
+    display: inline-flex;
+    align-items: center;
+
+    margin-bottom: 18px;
+
+    color: var(--category-accent);
+
+    font-size: 11px;
+    font-weight: 800;
+
+    letter-spacing: 1.7px;
+}
+
+.jb-category-eyebrow::before {
+    content: "";
+
+    width: 7px;
+    height: 7px;
+
+    margin-right: 8px;
+
+    border-radius: 50%;
+
+    background: var(--category-accent);
+}
+
+.jb-category-hero h1 {
+    margin: 0;
+
+    color: #10182b;
+
+    font-size: clamp(42px, 5vw, 68px);
+    line-height: 0.98;
+
+    letter-spacing: -3px;
+    font-weight: 800;
+}
+
+.jb-category-hero h1 span {
+    color: var(--category-accent);
+}
+
+.jb-category-hero p {
+    max-width: 560px;
+
+    margin: 22px 0 28px;
+
+    color: #526078;
+
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.jb-category-primary-btn {
+    min-width: 205px;
+    height: 50px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #10182b;
+    color: #ffffff;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.jb-category-primary-btn:hover {
+    transform: translateY(-2px);
+
+    box-shadow: 0 10px 25px rgba(16, 24, 43, 0.18);
+}
+
+.jb-category-primary-btn span {
+    font-size: 18px;
+}
+
+/* HERO IMAGE */
+
+.jb-category-hero-image-area {
+    position: relative;
+
+    width: 100%;
+    height: 100%;
+
+    min-height: 460px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.jb-category-hero-circle {
+    position: absolute;
+
+    width: 520px;
+    height: 520px;
+
+    border-radius: 50%;
+
+    background: color-mix(
+        in srgb,
+        var(--category-accent) 8%,
+        white
+    );
+
+    transform: translate(30px, -70px);
+}
+
+.jb-category-hero-image {
+    position: relative;
+    z-index: 2;
+
+    width: 67%;
+    height: 72%;
+
+    max-height: 380px;
+
+    object-fit: cover;
+
+    border-radius: 130px 130px 20px 20px;
+
+    box-shadow: 0 25px 45px rgba(15, 23, 42, 0.12);
+}
+
+/* ARROWS */
+
+.jb-category-arrow {
+    position: absolute;
+    z-index: 5;
+
+    top: 50%;
+
+    width: 44px;
+    height: 44px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #dfe5ef;
+    border-radius: 50%;
+
+    background: #ffffff;
+
+    color: #10182b;
+
+    font-size: 28px;
+    line-height: 1;
+
+    cursor: pointer;
+
+    transform: translateY(-50%);
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.jb-category-arrow:hover {
+    background: #10182b;
+    color: #ffffff;
+}
+
+.jb-category-arrow-left {
+    left: 16px;
+}
+
+.jb-category-arrow-right {
+    right: 16px;
+}
+
+/* =========================================
+   SECTION
+========================================= */
+
+.jb-category-section {
+    margin-top: 62px;
+}
+
+.jb-category-section-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    margin-bottom: 22px;
+}
+
+.jb-category-section-heading span {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: var(--category-accent);
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: 1.6px;
+}
+
+.jb-category-section-heading h2 {
+    margin: 0;
+
+    color: #10182b;
+
+    font-size: 29px;
+    line-height: 1.15;
+
+    letter-spacing: -1px;
+}
+
+.jb-category-section-heading button {
+    border: none;
+
+    background: transparent;
+
+    color: #10182b;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+/* =========================================
+   CATEGORY LIST
+========================================= */
+
+.jb-category-list {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 16px;
+}
+
+.jb-category-item {
+    min-width: 0;
+
+    padding: 0;
+
+    border: 1px solid #e5e9f2;
+    border-radius: 12px;
+
+    background: #ffffff;
+
+    overflow: hidden;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
+}
+
+.jb-category-item:hover {
+    transform: translateY(-4px);
+
+    border-color: #d6ddea;
+
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.jb-category-item-image {
+    width: 100%;
+    aspect-ratio: 1.25;
+
+    overflow: hidden;
+
+    background: #f4f6fa;
+}
+
+.jb-category-item-image img {
+    width: 100%;
+    height: 100%;
+
+    display: block;
+
+    object-fit: cover;
+
+    transition: transform 0.35s ease;
+}
+
+.jb-category-item:hover img {
+    transform: scale(1.06);
+}
+
+.jb-category-item strong {
+    display: block;
+
+    padding: 10px 10px 2px;
+
+    color: #10182b;
+
+    font-size: 14px;
+}
+
+.jb-category-item > span {
+    display: block;
+
+    padding: 0 10px 12px;
+
+    color: #7b8494;
+
+    font-size: 11px;
+}
+
+/* =========================================
+   PRODUCTS
+========================================= */
+
+.jb-category-products {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 18px;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1200px) {
+    .jb-category-page {
+        padding-inline: 3%;
+    }
+
+    .jb-category-hero-content {
+        padding-left: 45px;
+    }
+
+    .jb-category-list {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .jb-category-products {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .jb-category-hero {
+        grid-template-columns: 1fr;
+
+        min-height: auto;
+    }
+
+    .jb-category-hero-content {
+        padding: 45px 35px 20px;
+    }
+
+    .jb-category-hero h1 {
+        font-size: 52px;
+    }
+
+    .jb-category-hero-image-area {
+        min-height: 360px;
+    }
+
+    .jb-category-hero-image {
+        width: 55%;
+        height: 290px;
+    }
+
+    .jb-category-products {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 650px) {
+    .jb-category-page {
+        padding: 16px 15px 50px;
+    }
+
+    .jb-category-hero {
+        border-radius: 16px;
+    }
+
+    .jb-category-hero-content {
+        padding: 35px 24px 10px;
+    }
+
+    .jb-category-hero h1 {
+        font-size: 42px;
+
+        letter-spacing: -2px;
+    }
+
+    .jb-category-hero p {
+        font-size: 14px;
+    }
+
+    .jb-category-primary-btn {
+        width: 100%;
+    }
+
+    .jb-category-hero-image-area {
+        min-height: 300px;
+    }
+
+    .jb-category-hero-image {
+        width: 68%;
+        height: 250px;
+    }
+
+    .jb-category-arrow {
+        width: 36px;
+        height: 36px;
+
+        font-size: 23px;
+    }
+
+    .jb-category-section {
+        margin-top: 45px;
+    }
+
+    .jb-category-section-heading {
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .jb-category-section-heading h2 {
+        font-size: 23px;
+    }
+
+    .jb-category-list {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .jb-category-products {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+}
+
+@media (max-width: 400px) {
+    .jb-category-hero h1 {
+        font-size: 36px;
+    }
+
+    .jb-category-list {
+        grid-template-columns: 1fr 1fr;
+    }
+}

@@ -1,0 +1,6 @@
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { getCheckoutSummaryApi, validateCheckoutApi } from "./CheckoutApi";
+export const fetchCheckoutSummary=createAsyncThunk("checkout/summary",async(p,{rejectWithValue})=>{try{return await getCheckoutSummaryApi(p)}catch(e){return rejectWithValue(e?.response?.data?.message||"Unable to load checkout")}});
+export const validateCheckout=createAsyncThunk("checkout/validate",async(p,{rejectWithValue})=>{try{return await validateCheckoutApi(p)}catch(e){return rejectWithValue(e?.response?.data?.message||"Unable to validate checkout")}});
+const slice=createSlice({name:"checkout",initialState:{summary:null,validation:null,loading:false,error:null},reducers:{clearCheckoutError:s=>{s.error=null}},extraReducers:b=>b.addCase(fetchCheckoutSummary.pending,s=>{s.loading=true;s.error=null}).addCase(fetchCheckoutSummary.fulfilled,(s,a)=>{s.loading=false;s.summary=a.payload?.data??a.payload}).addCase(fetchCheckoutSummary.rejected,(s,a)=>{s.loading=false;s.error=a.payload}).addCase(validateCheckout.fulfilled,(s,a)=>{s.validation=a.payload?.data??a.payload}).addCase(validateCheckout.rejected,(s,a)=>{s.error=a.payload})});
+export const {clearCheckoutError}=slice.actions; export default slice.reducer;
