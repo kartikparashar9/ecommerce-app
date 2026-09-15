@@ -42,7 +42,6 @@ const adminAnalyticsRoutes = require("./routes/adminAnalyticsRoutes");
 // =====================================================
 // MIDDLEWARE
 // =====================================================
-app.set("trust proxy", 1);
 
 const errorMiddleware = require("./middleware/errorMiddleware");
 
@@ -55,6 +54,7 @@ const {
 // =====================================================
 
 const app = express();
+app.set("trust proxy", 1);
 
 // =====================================================
 // RAZORPAY WEBHOOK
@@ -70,7 +70,7 @@ app.use(
 // BODY PARSERS
 // =====================================================
 
-app.use(express.json());
+app.use(express.json());z
 
 app.use(
     express.urlencoded({
