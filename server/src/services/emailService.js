@@ -4,34 +4,21 @@ const nodemailer = require("nodemailer");
 // ENVIRONMENT
 // =====================================================
 
-const SMTP_USER =
-  process.env.EMAIL_USER ||
-  process.env.SMTP_USER ||
-  "";
+const SMTP_USER = process.env.EMAIL_USER || process.env.SMTP_USER || "";
 
 const SMTP_PASSWORD =
-  process.env.EMAIL_PASSWORD ||
-  process.env.SMTP_PASSWORD ||
-  "";
+  process.env.EMAIL_PASSWORD || process.env.SMTP_PASSWORD || "";
 
-const FROM_EMAIL =
-  process.env.EMAIL_FROM ||
-  SMTP_USER;
+const FROM_EMAIL = process.env.EMAIL_FROM || SMTP_USER;
 
-const FROM_NAME =
-  process.env.EMAIL_FROM_NAME ||
-  "E-Commerce Store";
+const FROM_NAME = process.env.EMAIL_FROM_NAME || "E-Commerce Store";
 
 // =====================================================
 // EMAIL CONFIGURATION CHECK
 // =====================================================
 
 const isEmailConfigured = () => {
-  return Boolean(
-    SMTP_USER &&
-    SMTP_PASSWORD &&
-    FROM_EMAIL
-  );
+  return Boolean(SMTP_USER && SMTP_PASSWORD && FROM_EMAIL);
 };
 
 // =====================================================
@@ -55,7 +42,7 @@ const verifyEmailTransport = async () => {
   try {
     if (!isEmailConfigured()) {
       console.warn(
-        "Email service is not configured. Check EMAIL_USER and EMAIL_PASSWORD."
+        "Email service is not configured. Check EMAIL_USER and EMAIL_PASSWORD.",
       );
 
       return false;
@@ -67,10 +54,7 @@ const verifyEmailTransport = async () => {
 
     return true;
   } catch (error) {
-    console.error(
-      "Email transporter verification failed:",
-      error.message
-    );
+    console.error("Email transporter verification failed:", error.message);
 
     return false;
   }
@@ -80,28 +64,17 @@ const verifyEmailTransport = async () => {
 // GENERIC SEND EMAIL
 // =====================================================
 
-const sendEmail = async ({
-  to,
-  subject,
-  html,
-  text,
-}) => {
+const sendEmail = async ({ to, subject, html, text }) => {
   if (!to) {
-    throw new Error(
-      "Recipient email is required"
-    );
+    throw new Error("Recipient email is required");
   }
 
   if (!subject) {
-    throw new Error(
-      "Email subject is required"
-    );
+    throw new Error("Email subject is required");
   }
 
   if (!isEmailConfigured()) {
-    throw new Error(
-      "Email service is not configured"
-    );
+    throw new Error("Email service is not configured");
   }
 
   const mailOptions = {
@@ -113,22 +86,17 @@ const sendEmail = async ({
   };
 
   try {
-    const info =
-      await transporter.sendMail(
-        mailOptions
-      );
+    console.log("EMAIL: sendMail started");
 
-    console.log(
-      `Email sent successfully to ${to}`
-    );
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log("EMAIL: sendMail completed");
+
+    console.log(`Email sent successfully to ${to}`);
 
     return info;
   } catch (error) {
-    console.error(
-      `Failed to send email to ${to}:`,
-      error.message
-    );
-
+    console.error(`Failed to send email to ${to}:`, error.message);
     throw error;
   }
 };
@@ -146,37 +114,26 @@ const sendNotificationEmail = async ({
   senderName = "Admin",
 }) => {
   if (!to) {
-    throw new Error(
-      "Notification recipient email is required"
-    );
+    throw new Error("Notification recipient email is required");
   }
 
   if (!title) {
-    throw new Error(
-      "Notification title is required"
-    );
+    throw new Error("Notification title is required");
   }
 
   if (!message) {
-    throw new Error(
-      "Notification message is required"
-    );
+    throw new Error("Notification message is required");
   }
 
-  const safeName =
-    String(recipientName || "Customer");
+  const safeName = String(recipientName || "Customer");
 
-  const safeTitle =
-    String(title);
+  const safeTitle = String(title);
 
-  const safeMessage =
-    String(message);
+  const safeMessage = String(message);
 
-  const safeSender =
-    String(senderName || "Admin");
+  const safeSender = String(senderName || "Admin");
 
-  const safeType =
-    String(type || "general");
+  const safeType = String(type || "general");
 
   // ===================================================
   // PLAIN TEXT EMAIL
@@ -345,20 +302,13 @@ ${FROM_NAME}
 // EMAIL OTP
 // =====================================================
 
-const sendEmailOTP = async ({
-  to,
-  otp,
-}) => {
+const sendEmailOTP = async ({ to, otp }) => {
   if (!to) {
-    throw new Error(
-      "OTP recipient email is required"
-    );
+    throw new Error("OTP recipient email is required");
   }
 
   if (!otp) {
-    throw new Error(
-      "OTP is required"
-    );
+    throw new Error("OTP is required");
   }
 
   const text = `
@@ -436,8 +386,7 @@ If you did not request this OTP, please ignore this email.
 
   return sendEmail({
     to,
-    subject:
-      "Email Verification OTP",
+    subject: "Email Verification OTP",
     text,
     html,
   });
@@ -447,16 +396,10 @@ If you did not request this OTP, please ignore this email.
 // SELLER APPROVAL EMAIL
 // =====================================================
 
-const sendSellerApprovalEmail = async ({
-  to,
-  sellerName,
-  businessName,
-}) => {
-  const name =
-    sellerName || "Seller";
+const sendSellerApprovalEmail = async ({ to, sellerName, businessName }) => {
+  const name = sellerName || "Seller";
 
-  const business =
-    businessName || "Your Business";
+  const business = businessName || "Your Business";
 
   const text = `
 Hello ${name},
@@ -531,8 +474,7 @@ ${FROM_NAME}
 
   return sendEmail({
     to,
-    subject:
-      "Your Seller Application Has Been Approved",
+    subject: "Your Seller Application Has Been Approved",
     text,
     html,
   });
@@ -548,25 +490,18 @@ const sendSellerRejectionEmail = async ({
   businessName,
   reason = "",
 }) => {
-  const name =
-    sellerName || "Seller";
+  const name = sellerName || "Seller";
 
-  const business =
-    businessName || "Your Business";
+  const business = businessName || "Your Business";
 
-  const cleanReason =
-    String(reason || "").trim();
+  const cleanReason = String(reason || "").trim();
 
   const text = `
 Hello ${name},
 
 Your seller application for ${business} has been rejected.
 
-${
-  cleanReason
-    ? `Reason: ${cleanReason}`
-    : ""
-}
+${cleanReason ? `Reason: ${cleanReason}` : ""}
 
 You may submit your seller details again if permitted.
 
@@ -648,8 +583,7 @@ ${FROM_NAME}
 
   return sendEmail({
     to,
-    subject:
-      "Seller Application Update",
+    subject: "Seller Application Update",
     text,
     html,
   });
