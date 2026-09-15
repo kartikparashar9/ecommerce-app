@@ -70,7 +70,7 @@ app.use(
 // BODY PARSERS
 // =====================================================
 
-app.use(express.json());z
+app.use(express.json());
 
 app.use(
     express.urlencoded({
