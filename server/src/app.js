@@ -42,6 +42,7 @@ const adminAnalyticsRoutes = require("./routes/adminAnalyticsRoutes");
 // =====================================================
 // MIDDLEWARE
 // =====================================================
+app.set("trust proxy", 1);
 
 const errorMiddleware = require("./middleware/errorMiddleware");
 
