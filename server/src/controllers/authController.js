@@ -214,7 +214,7 @@ const login = asyncHandler(async (req, res) => {
   }
 
   const isPasswordMatched = await bcrypt.compare(password, user.password);
-  console.log("PASSWORD MATCH:", isPasswordValid);
+  console.log("PASSWORD MATCH:", isPasswordMatched);
   if (!isPasswordMatched) {
     increaseLoginAttempt(user.email);
 
