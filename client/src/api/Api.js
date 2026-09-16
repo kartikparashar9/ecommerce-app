@@ -20,13 +20,7 @@ API.interceptors.request.use(
 
 API.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error?.response?.status === 401) {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("user");
-    }
-    return Promise.reject(error);
-  },
+  (error) => Promise.reject(error),
 );
 
 export default API;
