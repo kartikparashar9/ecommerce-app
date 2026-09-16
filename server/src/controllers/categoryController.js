@@ -1,11 +1,7 @@
 const mongoose = require("mongoose");
-
 const Category = require("../models/categoryModel");
-
 const asyncHandler = require("../utils/asyncHandler");
-
 const ApiError = require("../utils/ApiError");
-
 const ApiResponse = require("../utils/ApiResponse");
 
 // =====================================================
@@ -73,8 +69,11 @@ const createUniqueSlug = async (name, excludeId = null) => {
 const createCategory = asyncHandler(async (req, res) => {
   const { name, description, image, parentCategory } = req.body;
 
-  const normalizedName = name.trim();
+  // -------------------------------------------------
+  // NORMALIZE DATA
+  // -------------------------------------------------
 
+  const normalizedName = name.trim();
   const normalizedParent = parentCategory || null;
 
   // -------------------------------------------------
@@ -86,7 +85,6 @@ const createCategory = asyncHandler(async (req, res) => {
       $regex: `^${escapeRegex(normalizedName)}$`,
       $options: "i",
     },
-
     parentCategory: normalizedParent,
   });
 
@@ -129,15 +127,10 @@ const createCategory = asyncHandler(async (req, res) => {
 
   const category = await Category.create({
     name: normalizedName,
-
     slug,
-
     description: description?.trim() || "",
-
     image: image?.trim() || "",
-
     parentCategory: normalizedParent,
-
     createdBy: req.user._id,
   });
 
@@ -158,10 +151,18 @@ const getCategories = asyncHandler(async (req, res) => {
   const {
     search = "",
     parentCategory,
-    status = "all",
+    status = "active",
     page = 1,
     limit = 20,
   } = req.query;
+
+  // -------------------------------------------------
+  // PUBLIC / ADMIN
+  // -------------------------------------------------
+
+  // GET /categories is public.
+  // Admin requests reach this controller with req.user.
+  const isAdmin = req.user?.role === "admin";
 
   // -------------------------------------------------
   // NORMALIZE PAGINATION
@@ -188,6 +189,33 @@ const getCategories = asyncHandler(async (req, res) => {
   const filter = {};
 
   // -------------------------------------------------
+  // PUBLIC USER
+  // -------------------------------------------------
+
+  // Public users can only see active categories.
+  // They cannot request inactive/all categories.
+  if (!isAdmin) {
+    filter.isActive = true;
+  }
+
+  // -------------------------------------------------
+  // ADMIN STATUS FILTER
+  // -------------------------------------------------
+
+  if (isAdmin) {
+    if (status === "active") {
+      filter.isActive = true;
+    }
+
+    if (status === "inactive") {
+      filter.isActive = false;
+    }
+
+    // status === "all"
+    // No isActive filter is applied.
+  }
+
+  // -------------------------------------------------
   // SEARCH
   // -------------------------------------------------
 
@@ -212,18 +240,6 @@ const getCategories = asyncHandler(async (req, res) => {
   }
 
   // -------------------------------------------------
-  // STATUS
-  // -------------------------------------------------
-
-  if (status === "active") {
-    filter.isActive = true;
-  }
-
-  if (status === "inactive") {
-    filter.isActive = false;
-  }
-
-  // -------------------------------------------------
   // PAGINATION
   // -------------------------------------------------
 
@@ -233,10 +249,30 @@ const getCategories = asyncHandler(async (req, res) => {
   // DATABASE QUERY
   // -------------------------------------------------
 
-  const [categories, totalCategories] = await Promise.all([
-    Category.find(filter)
+  let categoryQuery = Category.find(filter);
+
+  // -------------------------------------------------
+  // PUBLIC RESPONSE FIELDS
+  // -------------------------------------------------
+
+  if (!isAdmin) {
+    categoryQuery = categoryQuery
+      .select("name slug description image parentCategory")
+      .populate("parentCategory", "name slug");
+  }
+
+  // -------------------------------------------------
+  // ADMIN RESPONSE FIELDS
+  // -------------------------------------------------
+
+  if (isAdmin) {
+    categoryQuery = categoryQuery
       .populate("parentCategory", "name slug")
-      .populate("createdBy", "name email")
+      .populate("createdBy", "name email");
+  }
+
+  const [categories, totalCategories] = await Promise.all([
+    categoryQuery
       .sort({
         name: 1,
       })
@@ -295,13 +331,45 @@ const getCategoryById = asyncHandler(async (req, res) => {
   }
 
   // -------------------------------------------------
+  // PUBLIC / ADMIN
+  // -------------------------------------------------
+
+  const isAdmin = req.user?.role === "admin";
+
+  // -------------------------------------------------
   // DATABASE QUERY
   // -------------------------------------------------
 
-  const category = await Category.findById(id)
-    .populate("parentCategory", "name slug")
-    .populate("createdBy", "name email")
-    .lean();
+  let categoryQuery;
+
+  // -------------------------------------------------
+  // PUBLIC USER
+  // -------------------------------------------------
+
+  if (!isAdmin) {
+    categoryQuery = Category.findOne({
+      _id: id,
+      isActive: true,
+    })
+      .select("name slug description image parentCategory")
+      .populate("parentCategory", "name slug");
+  }
+
+  // -------------------------------------------------
+  // ADMIN
+  // -------------------------------------------------
+
+  if (isAdmin) {
+    categoryQuery = Category.findById(id)
+      .populate("parentCategory", "name slug")
+      .populate("createdBy", "name email");
+  }
+
+  const category = await categoryQuery.lean();
+
+  // -------------------------------------------------
+  // CATEGORY NOT FOUND
+  // -------------------------------------------------
 
   if (!category) {
     throw new ApiError(404, "Category not found");
@@ -353,23 +421,35 @@ const updateCategory = asyncHandler(async (req, res) => {
     if (parentCategory === null || parentCategory === "") {
       targetParent = null;
     } else {
+      // ---------------------------------------------
+      // VALIDATE PARENT ID
+      // ---------------------------------------------
+
       if (!mongoose.Types.ObjectId.isValid(parentCategory)) {
         throw new ApiError(400, "Invalid parent category ID");
       }
 
-      // -----------------------------------------
+      // ---------------------------------------------
       // PREVENT SELF PARENT
-      // -----------------------------------------
+      // ---------------------------------------------
 
       if (parentCategory.toString() === id.toString()) {
         throw new ApiError(400, "A category cannot be its own parent");
       }
+
+      // ---------------------------------------------
+      // FIND PARENT
+      // ---------------------------------------------
 
       const parent = await Category.findById(parentCategory);
 
       if (!parent) {
         throw new ApiError(404, "Parent category not found");
       }
+
+      // ---------------------------------------------
+      // PARENT MUST BE ACTIVE
+      // ---------------------------------------------
 
       if (!parent.isActive) {
         throw new ApiError(400, "Cannot assign an inactive parent category");
@@ -526,17 +606,17 @@ const deleteCategory = asyncHandler(async (req, res) => {
 const toggleCategoryStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  // ---------------------------------------------
+  // -------------------------------------------------
   // VALIDATE ID
-  // ---------------------------------------------
+  // -------------------------------------------------
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, "Invalid category ID");
   }
 
-  // ---------------------------------------------
+  // -------------------------------------------------
   // FIND CATEGORY
-  // ---------------------------------------------
+  // -------------------------------------------------
 
   const category = await Category.findById(id);
 
@@ -544,17 +624,17 @@ const toggleCategoryStatus = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Category not found");
   }
 
-  // ---------------------------------------------
+  // -------------------------------------------------
   // TOGGLE STATUS
-  // ---------------------------------------------
+  // -------------------------------------------------
 
   category.isActive = !category.isActive;
 
   await category.save();
 
-  // ---------------------------------------------
+  // -------------------------------------------------
   // RESPONSE
-  // ---------------------------------------------
+  // -------------------------------------------------
 
   return res
     .status(200)
