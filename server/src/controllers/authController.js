@@ -196,6 +196,12 @@ const login = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findOne(query);
+  console.log("LOGIN DEBUG:", {
+    email: email,
+    emailLength: email?.length,
+    passwordLength: password?.length,
+    userFound: !!user,
+  });
 
   if (!user) {
     increaseLoginAttempt(email || phone);
@@ -208,7 +214,7 @@ const login = asyncHandler(async (req, res) => {
   }
 
   const isPasswordMatched = await bcrypt.compare(password, user.password);
-
+  console.log("PASSWORD MATCH:", isPasswordValid);
   if (!isPasswordMatched) {
     increaseLoginAttempt(user.email);
 
