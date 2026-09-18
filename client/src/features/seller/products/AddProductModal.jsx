@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import {
   createProductApi,
   getSellerCategoriesApi,
   getSellerBrandsApi,
   uploadProductImagesApi,
+  deleteProductApi,
 } from "../sellerApi";
 import { fetchSellerProducts } from "../sellerSlice";
 import { FiX, FiPlus, FiTrash2 } from "react-icons/fi";
 import "./AddProductModal.css";
+
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 const AddProductModal = ({ onClose }) => {
   const dispatch = useDispatch();
@@ -88,8 +92,13 @@ const AddProductModal = ({ onClose }) => {
   const handleImageChange = (index, file) => {
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setError("Please select a valid image file.");
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase())) {
+      setError("Only JPG, JPEG, PNG and WEBP images are supported.");
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      setError("Each product image must be 5MB or smaller.");
       return;
     }
 
@@ -203,6 +212,10 @@ const AddProductModal = ({ onClose }) => {
         .filter((image) => image?.file)
         .map((image) => image.file);
 
+      if (selectedImages.length === 0) {
+        throw new Error("Please add at least one product image.");
+      }
+
       // -------------------------------------------------
       // Create product WITHOUT images
       // -------------------------------------------------
@@ -228,30 +241,42 @@ const AddProductModal = ({ onClose }) => {
       // STEP 1: Create product
       // -------------------------------------------------
 
-      const productResponse = await createProductApi(productData);
+      let createdProductId = null;
 
-      const product = productResponse?.data;
+      try {
+        const productResponse = await createProductApi(productData);
+        const product = productResponse?.data;
 
-      if (!product?._id) {
-        throw new Error(
-          "Product was created, but product ID was not returned by the server.",
-        );
-      }
+        createdProductId = product?._id;
 
-      // -------------------------------------------------
-      // STEP 2: Upload local PC images
-      // -------------------------------------------------
+        if (!createdProductId) {
+          throw new Error(
+            "Product was created, but product ID was not returned by the server.",
+          );
+        }
 
-      if (selectedImages.length > 0) {
-        await uploadProductImagesApi(product._id, selectedImages);
+        // -------------------------------------------------
+        // STEP 2: Upload local PC images
+        // -------------------------------------------------
+
+        await uploadProductImagesApi(createdProductId, selectedImages);
+      } catch (createOrUploadError) {
+        if (createdProductId) {
+          try {
+            await deleteProductApi(createdProductId);
+          } catch (rollbackError) {
+            console.error("Product rollback failed:", rollbackError);
+          }
+        }
+
+        throw createOrUploadError;
       }
 
       // -------------------------------------------------
       // Refresh seller products
       // -------------------------------------------------
 
-      dispatch(fetchSellerProducts());
-
+      await dispatch(fetchSellerProducts()).unwrap();
       onClose();
     } catch (err) {
       console.error("Failed to create product:", err);
@@ -470,6 +495,7 @@ const AddProductModal = ({ onClose }) => {
                   title="Remove image"
                 >
                   <FiTrash2 />
+                  <span>Remove</span>
                 </button>
               </div>
             ))}

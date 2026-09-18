@@ -61,7 +61,7 @@ const SellerProtectedGuard = () => {
         <div className="seller-state-icon warning"><FiAlertTriangle /></div>
         <h2>Unable to verify seller profile</h2>
         <p>{error}</p>
-        <button className="seller-primary-btn" onClick={() => dispatch(fetchMySellerProfile())}>
+        <button className="seller-primary-btn" onClick={() => dispatch(fetchMySellerProfile({ force: true }))}>
           <FiRefreshCw /> Retry
         </button>
       </div>
@@ -78,7 +78,7 @@ const SellerProtectedGuard = () => {
         <div className="seller-state-icon warning"><FiAlertTriangle /></div>
         <h2>Seller profile unavailable</h2>
         <p>Your seller record could not be loaded correctly.</p>
-        <button className="seller-primary-btn" onClick={() => dispatch(fetchMySellerProfile())}>
+        <button className="seller-primary-btn" onClick={() => dispatch(fetchMySellerProfile({ force: true }))}>
           <FiRefreshCw /> Refresh
         </button>
       </div>
@@ -111,7 +111,7 @@ const SellerProtectedGuard = () => {
               ? profile.blockReason || "Your seller account has been blocked by marketplace administration."
               : "Your seller account is currently inactive. Contact marketplace support if you need assistance."}
           </p>
-          <button className="seller-secondary-btn" onClick={() => dispatch(fetchMySellerProfile())}>
+          <button className="seller-secondary-btn" onClick={() => dispatch(fetchMySellerProfile({ force: true }))}>
             <FiRefreshCw /> Refresh Status
           </button>
         </div>
@@ -125,7 +125,7 @@ const SellerProtectedGuard = () => {
         <div className="seller-state-icon warning"><FiAlertTriangle /></div>
         <h2>Seller status unavailable</h2>
         <p>Please refresh your seller account status.</p>
-        <button className="seller-primary-btn" onClick={() => dispatch(fetchMySellerProfile())}>Refresh</button>
+        <button className="seller-primary-btn" onClick={() => dispatch(fetchMySellerProfile({ force: true }))}>Refresh</button>
       </div>
     );
   }

@@ -24,16 +24,23 @@ const MyProducts = () => {
     return () => clearTimeout(timer);
   }, [dispatch, search, status]);
 
-  const refresh = () => dispatch(fetchSellerProducts({ search: search.trim() || undefined, isActive: status === "all" ? undefined : status, limit: 20 }));
+  const refresh = () =>
+    dispatch(
+      fetchSellerProducts({
+        search: search.trim() || undefined,
+        isActive: status === "all" ? undefined : status,
+        limit: 20,
+      }),
+    );
 
   const toggle = async (id) => {
-    try { await toggleProductStatusApi(id); refresh(); }
+    try { await toggleProductStatusApi(id); await refresh().unwrap(); }
     catch (error) { window.alert(error?.response?.data?.message || "Unable to update product status."); }
   };
 
   const remove = async (id) => {
-    if (!window.confirm("Delete this product permanently?")) return;
-    try { await deleteProductApi(id); refresh(); }
+    if (!window.confirm("Remove this product from your store?")) return;
+    try { await deleteProductApi(id); await refresh().unwrap(); }
     catch (error) { window.alert(error?.response?.data?.message || "Unable to delete product."); }
   };
 

@@ -48,8 +48,6 @@ const Login = () => {
         password: data.password,
       });
 
-      console.log("Login response:", response);
-
       const accessToken = response?.data?.accessToken || response?.accessToken;
       const user = response?.data?.user || response?.user || null;
 

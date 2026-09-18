@@ -12,7 +12,7 @@ import SellerDashboard from "./dashboard/SellerDashboard";
 import MyProducts from "./products/MyProducts";
 import SellerOrders from "./orders/SellerOrders";
 import SellerSettings from "./settings/SellerSettings";
-import SellerAnalytics from "./analytics";
+import SellerAnalytics from "./analytics/analytics";
 
 const SellerRoutes = () => {
     return (

@@ -11,7 +11,33 @@ const unwrap = (axiosResponse) => axiosResponse?.data ?? null;
 export const createSellerApi = async (sellerData) =>
   unwrap(await API.post("/seller", sellerData));
 
-export const getMySellerApi = async () => unwrap(await API.get("/seller/me"));
+export const getMySellerApi = async () => {
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return unwrap(
+        await API.get("/seller/me", {
+          timeout: 8000,
+        }),
+      );
+    } catch (error) {
+      const status = error?.response?.status;
+      const retryable =
+        !status ||
+        status >= 500 ||
+        error?.code === "ECONNABORTED" ||
+        error?.code === "ETIMEDOUT" ||
+        error?.code === "ERR_NETWORK";
+
+      if (!retryable || attempt === maxAttempts) {
+        throw error;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+    }
+  }
+};
 
 export const updateMySellerApi = async (sellerData) =>
   unwrap(await API.put("/seller/me", sellerData));

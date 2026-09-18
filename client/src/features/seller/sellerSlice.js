@@ -65,7 +65,7 @@ const extractCollection = (response, key) => {
 
 export const fetchMySellerProfile = createAsyncThunk(
   "seller/fetchMySellerProfile",
-  async (_, { rejectWithValue }) => {
+  async ({ force = false } = {}, { rejectWithValue }) => {
     try {
       const response = await getMySellerApi();
       const seller = extractSeller(response);
@@ -88,6 +88,14 @@ export const fetchMySellerProfile = createAsyncThunk(
         isNotFound: status === 404,
       });
     }
+  },
+  {
+    condition: ({ force = false } = {}, { getState }) => {
+      if (force) return true;
+
+      const seller = getState()?.seller;
+      return !seller?.profileLoading && !seller?.profileFetched;
+    },
   },
 );
 
@@ -189,6 +197,15 @@ const sellerSlice = createSlice({
     clearSellerErrors: (state) => {
       state.error = null;
       state.successMessage = null;
+    },
+
+    orderUpdatedLocally: (state, action) => {
+      const updatedOrder = action.payload;
+      const index = state.orders.findIndex((order) => order._id === updatedOrder?._id);
+
+      if (index !== -1) {
+        state.orders[index] = updatedOrder;
+      }
     },
 
     resetSellerState: () => ({ ...initialState }),
@@ -293,6 +310,6 @@ const sellerSlice = createSlice({
   },
 });
 
-export const { clearSellerErrors, resetSellerState } = sellerSlice.actions;
+export const { clearSellerErrors, orderUpdatedLocally, resetSellerState } = sellerSlice.actions;
 
 export default sellerSlice.reducer;

@@ -1388,11 +1388,11 @@ const deleteProduct = asyncHandler(async (req, res) => {
     );
   }
 
-  product.isDeleted = true;
-  product.deletedAt = new Date();
-  product.isActive = false;
-
-  await product.save();
+  // Permanently delete product from MongoDB
+  await Product.deleteOne({
+    _id: product._id,
+    seller: seller._id,
+  });
 
   return res
     .status(200)
