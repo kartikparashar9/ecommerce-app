@@ -10,11 +10,17 @@ const asyncHandler = require("../../utils/asyncHandler");
 
 // =====================================================
 // CREATE RAZORPAY ORDER
+// POST /api/payment/create-order
+// AUTHENTICATED USER
 // =====================================================
 
 const createRazorpayOrder = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
   const { orderId } = req.body;
+
+  // -------------------------------------------------
+  // FIND ORDER
+  // -------------------------------------------------
 
   const order = await Order.findOne({
     _id: orderId,
@@ -25,15 +31,27 @@ const createRazorpayOrder = asyncHandler(async (req, res, next) => {
     return next(new ApiError(404, "Order not found"));
   }
 
+  // -------------------------------------------------
+  // PAYMENT METHOD
+  // -------------------------------------------------
+
   if (order.paymentMethod !== "online") {
     return next(
       new ApiError(400, "Online payment is not available for this order"),
     );
   }
 
+  // -------------------------------------------------
+  // ALREADY PAID
+  // -------------------------------------------------
+
   if (order.paymentStatus === "paid") {
     return next(new ApiError(400, "Order has already been paid"));
   }
+
+  // -------------------------------------------------
+  // INVALID ORDER STATUS
+  // -------------------------------------------------
 
   const invalidStatuses = ["cancelled", "delivered", "returned", "refunded"];
 
@@ -46,6 +64,10 @@ const createRazorpayOrder = asyncHandler(async (req, res, next) => {
     );
   }
 
+  // -------------------------------------------------
+  // ORDER AMOUNT
+  // -------------------------------------------------
+
   const amount = Number(order.totalAmount);
 
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -54,9 +76,9 @@ const createRazorpayOrder = asyncHandler(async (req, res, next) => {
 
   const amountInPaise = Math.round(amount * 100);
 
-  // =============================================
+  // -------------------------------------------------
   // CHECK EXISTING PAYMENT
-  // =============================================
+  // -------------------------------------------------
 
   const existingPayment = await Payment.findOne({
     order: order._id,
@@ -69,24 +91,28 @@ const createRazorpayOrder = asyncHandler(async (req, res, next) => {
     createdAt: -1,
   });
 
-  // =============================================
-  // REUSE ONLY VALID RAZORPAY ORDER
-  // =============================================
+  // -------------------------------------------------
+  // VALIDATE EXISTING RAZORPAY ORDER
+  // -------------------------------------------------
 
-  if (existingPayment?.razorpayOrderId) {
+  if (existingPayment && existingPayment.razorpayOrderId) {
     try {
-      const razorpayOrder = await razorpay.orders.fetch(
+      const existingRazorpayOrder = await razorpay.orders.fetch(
         existingPayment.razorpayOrderId,
       );
 
-      const sameAmount = Number(razorpayOrder.amount) === amountInPaise;
+      const sameAmount = Number(existingRazorpayOrder.amount) === amountInPaise;
 
       const sameCurrency =
-        String(razorpayOrder.currency).toUpperCase() === "INR";
+        String(existingRazorpayOrder.currency).toUpperCase() === "INR";
 
       const usableStatus = ["created", "attempted"].includes(
-        razorpayOrder.status,
+        existingRazorpayOrder.status,
       );
+
+      // -------------------------------------------------
+      // REUSE VALID ORDER
+      // -------------------------------------------------
 
       if (sameAmount && sameCurrency && usableStatus) {
         return res.status(200).json(
@@ -99,11 +125,11 @@ const createRazorpayOrder = asyncHandler(async (req, res, next) => {
 
               orderNumber: order.orderNumber,
 
-              razorpayOrderId: razorpayOrder.id,
+              razorpayOrderId: existingRazorpayOrder.id,
 
-              amount: razorpayOrder.amount,
+              amount: existingRazorpayOrder.amount,
 
-              currency: razorpayOrder.currency,
+              currency: existingRazorpayOrder.currency,
 
               keyId: process.env.RAZORPAY_KEY_ID,
             },
@@ -112,29 +138,34 @@ const createRazorpayOrder = asyncHandler(async (req, res, next) => {
         );
       }
 
-      // =====================================
+      // -------------------------------------------------
       // RAZORPAY ORDER ALREADY PAID
-      // =====================================
+      // -------------------------------------------------
 
-      if (razorpayOrder.status === "paid") {
+      if (existingRazorpayOrder.status === "paid") {
         return next(
           new ApiError(409, "This Razorpay order has already been paid"),
         );
       }
     } catch (error) {
-      console.error("Existing Razorpay order validation failed:", error);
+      console.error("Existing Razorpay order validation error:", error);
     }
 
+    // -------------------------------------------------
+    // INVALID OLD PAYMENT
+    // -------------------------------------------------
+
     existingPayment.status = "failed";
+
     existingPayment.failureReason =
       "Previous Razorpay order is no longer usable";
 
     await existingPayment.save();
   }
 
-  // =============================================
+  // -------------------------------------------------
   // CREATE NEW RAZORPAY ORDER
-  // =============================================
+  // -------------------------------------------------
 
   let razorpayOrder;
 
@@ -166,18 +197,24 @@ const createRazorpayOrder = asyncHandler(async (req, res, next) => {
     status: razorpayOrder.status,
   });
 
-  // =============================================
-  // SAVE PAYMENT
-  // =============================================
+  // -------------------------------------------------
+  // CREATE PAYMENT RECORD
+  // -------------------------------------------------
 
   const payment = await Payment.create({
     order: order._id,
     user: userId,
+
     amount,
+
     currency: "INR",
+
     paymentMethod: "online",
+
     gateway: "razorpay",
+
     status: "pending",
+
     razorpayOrderId: razorpayOrder.id,
   });
 
@@ -206,6 +243,8 @@ const createRazorpayOrder = asyncHandler(async (req, res, next) => {
 
 // =====================================================
 // VERIFY RAZORPAY PAYMENT
+// POST /api/payment/verify
+// AUTHENTICATED USER
 // =====================================================
 
 const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
@@ -213,6 +252,10 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
 
   const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } =
     req.body;
+
+  // -------------------------------------------------
+  // FIND LOCAL PAYMENT
+  // -------------------------------------------------
 
   const payment = await Payment.findOne({
     razorpayOrderId,
@@ -223,17 +266,17 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
     return next(new ApiError(404, "Payment record not found"));
   }
 
-  // =========================================
-  // VERIFY PAYMENT BELONGS TO ORDER
-  // =========================================
+  // -------------------------------------------------
+  // PAYMENT / ORDER MATCH
+  // -------------------------------------------------
 
   if (String(payment.order) !== String(orderId)) {
     return next(new ApiError(400, "Payment and order do not match"));
   }
 
-  // =========================================
-  // ALREADY SUCCESSFUL
-  // =========================================
+  // -------------------------------------------------
+  // ALREADY VERIFIED
+  // -------------------------------------------------
 
   if (payment.status === "success") {
     return res.status(200).json(
@@ -251,14 +294,18 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // =========================================
-  // SIGNATURE
-  // =========================================
+  // -------------------------------------------------
+  // GENERATE SIGNATURE
+  // -------------------------------------------------
 
   const generatedSignature = crypto
     .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
     .update(`${razorpayOrderId}|${razorpayPaymentId}`)
     .digest("hex");
+
+  // -------------------------------------------------
+  // SIGNATURE LENGTH
+  // -------------------------------------------------
 
   if (generatedSignature.length !== razorpaySignature.length) {
     payment.status = "failed";
@@ -269,6 +316,10 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
 
     return next(new ApiError(400, "Payment verification failed"));
   }
+
+  // -------------------------------------------------
+  // SIGNATURE VERIFY
+  // -------------------------------------------------
 
   const isValidSignature = crypto.timingSafeEqual(
     Buffer.from(generatedSignature),
@@ -285,9 +336,9 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
     return next(new ApiError(400, "Payment verification failed"));
   }
 
-  // =========================================
+  // -------------------------------------------------
   // FIND ORDER
-  // =========================================
+  // -------------------------------------------------
 
   const order = await Order.findOne({
     _id: payment.order,
@@ -298,9 +349,9 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
     return next(new ApiError(404, "Associated order not found"));
   }
 
-  // =========================================
+  // -------------------------------------------------
   // FETCH PAYMENT FROM RAZORPAY
-  // =========================================
+  // -------------------------------------------------
 
   let razorpayPayment;
 
@@ -312,9 +363,9 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
     return next(new ApiError(502, "Unable to verify Razorpay payment"));
   }
 
-  // =========================================
-  // VERIFY ORDER ID
-  // =========================================
+  // -------------------------------------------------
+  // VERIFY RAZORPAY ORDER
+  // -------------------------------------------------
 
   if (razorpayPayment.order_id !== razorpayOrderId) {
     payment.status = "failed";
@@ -326,9 +377,9 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
     return next(new ApiError(400, "Razorpay payment order mismatch"));
   }
 
-  // =========================================
+  // -------------------------------------------------
   // VERIFY AMOUNT
-  // =========================================
+  // -------------------------------------------------
 
   const expectedAmount = Math.round(Number(order.totalAmount) * 100);
 
@@ -342,9 +393,9 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
     return next(new ApiError(400, "Razorpay payment amount mismatch"));
   }
 
-  // =========================================
+  // -------------------------------------------------
   // VERIFY CURRENCY
-  // =========================================
+  // -------------------------------------------------
 
   if (String(razorpayPayment.currency).toUpperCase() !== "INR") {
     payment.status = "failed";
@@ -356,9 +407,9 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
     return next(new ApiError(400, "Invalid payment currency"));
   }
 
-  // =========================================
+  // -------------------------------------------------
   // PAYMENT MUST BE CAPTURED
-  // =========================================
+  // -------------------------------------------------
 
   if (razorpayPayment.status !== "captured") {
     payment.status = "failed";
@@ -370,9 +421,9 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
     return next(new ApiError(400, "Payment has not been captured"));
   }
 
-  // =========================================
-  // SUCCESS
-  // =========================================
+  // -------------------------------------------------
+  // UPDATE PAYMENT
+  // -------------------------------------------------
 
   payment.razorpayPaymentId = razorpayPaymentId;
 
@@ -384,9 +435,9 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
 
   await payment.save();
 
-  // =========================================
+  // -------------------------------------------------
   // UPDATE ORDER
-  // =========================================
+  // -------------------------------------------------
 
   order.paymentStatus = "paid";
 
@@ -395,6 +446,10 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
   }
 
   await order.save();
+
+  // -------------------------------------------------
+  // RESPONSE
+  // -------------------------------------------------
 
   return res.status(200).json(
     new ApiResponse(
@@ -419,7 +474,260 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
   );
 });
 
+// =====================================================
+// CREATE COD PAYMENT
+// POST /api/payment/cod
+// AUTHENTICATED USER
+// =====================================================
+
+const createCODPayment = asyncHandler(async (req, res, next) => {
+  const userId = req.user._id;
+  const { orderId } = req.body;
+
+  // -------------------------------------------------
+  // FIND ORDER
+  // -------------------------------------------------
+
+  const order = await Order.findOne({
+    _id: orderId,
+    user: userId,
+  });
+
+  if (!order) {
+    return next(new ApiError(404, "Order not found"));
+  }
+
+  // -------------------------------------------------
+  // CHECK PAYMENT METHOD
+  // -------------------------------------------------
+
+  if (order.paymentMethod !== "cod") {
+    return next(new ApiError(400, "COD is not available for this order"));
+  }
+
+  // -------------------------------------------------
+  // ALREADY PAID
+  // -------------------------------------------------
+
+  if (order.paymentStatus === "paid") {
+    return next(new ApiError(400, "Order has already been paid"));
+  }
+
+  // -------------------------------------------------
+  // EXISTING COD PAYMENT
+  // -------------------------------------------------
+
+  const existingPayment = await Payment.findOne({
+    order: order._id,
+    user: userId,
+    paymentMethod: "cod",
+  });
+
+  if (existingPayment) {
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          paymentId: existingPayment._id,
+
+          orderId: order._id,
+
+          amount: existingPayment.amount,
+
+          paymentMethod: existingPayment.paymentMethod,
+
+          status: existingPayment.status,
+        },
+        "COD payment already exists",
+      ),
+    );
+  }
+
+  // -------------------------------------------------
+  // CREATE COD PAYMENT
+  // -------------------------------------------------
+
+  const payment = await Payment.create({
+    order: order._id,
+    user: userId,
+
+    amount: Number(order.totalAmount),
+
+    currency: "INR",
+
+    paymentMethod: "cod",
+
+    gateway: "cod",
+
+    status: "pending",
+  });
+
+  return res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        paymentId: payment._id,
+
+        orderId: order._id,
+
+        amount: payment.amount,
+
+        currency: payment.currency,
+
+        paymentMethod: payment.paymentMethod,
+
+        status: payment.status,
+      },
+      "COD payment created successfully",
+    ),
+  );
+});
+
+// =====================================================
+// COMPLETE COD PAYMENT
+// PATCH /api/payment/cod/:paymentId/complete
+// AUTHENTICATED USER
+// =====================================================
+
+const completeCODPayment = asyncHandler(async (req, res, next) => {
+  const userId = req.user._id;
+  const { paymentId } = req.params;
+
+  // -------------------------------------------------
+  // FIND PAYMENT
+  // -------------------------------------------------
+
+  const payment = await Payment.findOne({
+    _id: paymentId,
+    user: userId,
+    paymentMethod: "cod",
+  });
+
+  if (!payment) {
+    return next(new ApiError(404, "COD payment not found"));
+  }
+
+  // -------------------------------------------------
+  // ALREADY SUCCESS
+  // -------------------------------------------------
+
+  if (payment.status === "success") {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, payment, "COD payment already completed"));
+  }
+
+  // -------------------------------------------------
+  // FIND ORDER
+  // -------------------------------------------------
+
+  const order = await Order.findOne({
+    _id: payment.order,
+    user: userId,
+  });
+
+  if (!order) {
+    return next(new ApiError(404, "Associated order not found"));
+  }
+
+  // -------------------------------------------------
+  // COMPLETE PAYMENT
+  // -------------------------------------------------
+
+  payment.status = "success";
+
+  payment.paidAt = new Date();
+
+  payment.failureReason = "";
+
+  await payment.save();
+
+  // -------------------------------------------------
+  // UPDATE ORDER
+  // -------------------------------------------------
+
+  order.paymentStatus = "paid";
+
+  if (order.orderStatus === "pending") {
+    order.orderStatus = "confirmed";
+  }
+
+  await order.save();
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        paymentId: payment._id,
+
+        orderId: order._id,
+
+        paymentStatus: payment.status,
+
+        orderStatus: order.orderStatus,
+      },
+      "COD payment completed successfully",
+    ),
+  );
+});
+
+// =====================================================
+// GET MY PAYMENTS
+// GET /api/payment/my-payments
+// AUTHENTICATED USER
+// =====================================================
+
+const getMyPayments = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const payments = await Payment.find({
+    user: userId,
+  })
+    .populate("order", "orderNumber totalAmount paymentStatus orderStatus")
+    .sort({
+      createdAt: -1,
+    });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, payments, "Payments fetched successfully"));
+});
+
+// =====================================================
+// GET PAYMENT BY ID
+// GET /api/payment/:paymentId
+// AUTHENTICATED USER
+// =====================================================
+
+const getPaymentById = asyncHandler(async (req, res, next) => {
+  const userId = req.user._id;
+  const { paymentId } = req.params;
+
+  const payment = await Payment.findOne({
+    _id: paymentId,
+    user: userId,
+  }).populate("order", "orderNumber totalAmount paymentStatus orderStatus");
+
+  if (!payment) {
+    return next(new ApiError(404, "Payment not found"));
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, payment, "Payment fetched successfully"));
+});
+
+// =====================================================
+// EXPORTS
+// =====================================================
+
 module.exports = {
   createRazorpayOrder,
   verifyRazorpayPayment,
+
+  createCODPayment,
+  completeCODPayment,
+
+  getMyPayments,
+  getPaymentById,
 };
