@@ -14,7 +14,6 @@ const reviewSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: [true, "User is required"],
-      index: true,
     },
 
     // -------------------------------------------------
@@ -90,15 +89,6 @@ const reviewSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-
-    // -------------------------------------------------
-    // PURCHASE VERIFICATION
-    // -------------------------------------------------
-
-    isVerifiedPurchase: {
-      type: Boolean,
-      default: false,
-    },
   },
   {
     timestamps: true,
@@ -109,7 +99,9 @@ const reviewSchema = new mongoose.Schema(
 // INDEXES
 // =====================================================
 
-// One user can create only one website review.
+// -----------------------------------------------------
+// One User = One Website Review
+// -----------------------------------------------------
 
 reviewSchema.index(
   {
@@ -136,15 +128,6 @@ reviewSchema.index({
 reviewSchema.index({
   rating: 1,
   status: 1,
-});
-
-// -----------------------------------------------------
-// User + Created At
-// -----------------------------------------------------
-
-reviewSchema.index({
-  user: 1,
-  createdAt: -1,
 });
 
 // =====================================================
