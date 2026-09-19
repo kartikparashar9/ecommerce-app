@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
 const Review = require("../models/reviewModel");
-const Product = require("../models/productModel");
 
 const ApiError = require("../utils/ApiError");
 
@@ -14,34 +13,28 @@ const isValidObjectId = (id) => {
 };
 
 // =====================================================
-// GET PRODUCT REVIEWS
-// GET /api/reviews/product/:productId
-// PUBLIC
+// GET ALL REVIEWS
+// GET /api/reviews
+// AUTHENTICATED USER
 // =====================================================
 
-const getProductReviews = async (req, res, next) => {
+const getReviews = async (req, res, next) => {
   try {
-    const { productId } = req.params;
+    // -------------------------------------------------
+    // Authentication
+    // -------------------------------------------------
+
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return next(new ApiError(401, "Authentication required"));
+    }
+
+    // -------------------------------------------------
+    // Query
+    // -------------------------------------------------
 
     const { page = 1, limit = 10, rating } = req.query;
-
-    // -------------------------------------------------
-    // Validate Product ID
-    // -------------------------------------------------
-
-    if (!isValidObjectId(productId)) {
-      return next(new ApiError(400, "Invalid product ID"));
-    }
-
-    // -------------------------------------------------
-    // Check Product
-    // -------------------------------------------------
-
-    const product = await Product.findById(productId).select("_id").lean();
-
-    if (!product) {
-      return next(new ApiError(404, "Product not found"));
-    }
 
     // -------------------------------------------------
     // Pagination
@@ -58,7 +51,6 @@ const getProductReviews = async (req, res, next) => {
     // -------------------------------------------------
 
     const filter = {
-      product: productId,
       status: "approved",
     };
 
@@ -81,7 +73,7 @@ const getProductReviews = async (req, res, next) => {
     }
 
     // -------------------------------------------------
-    // Fetch Reviews + Summary
+    // Fetch Reviews
     // -------------------------------------------------
 
     const [reviews, totalReviews, summary] = await Promise.all([
@@ -101,12 +93,8 @@ const getProductReviews = async (req, res, next) => {
 
       Review.aggregate([
         {
-          $match: {
-            product: new mongoose.Types.ObjectId(productId),
-            status: "approved",
-          },
+          $match: filter,
         },
-
         {
           $group: {
             _id: null,
@@ -208,7 +196,7 @@ const getProductReviews = async (req, res, next) => {
     return res.status(200).json({
       success: true,
 
-      message: "Product reviews fetched successfully",
+      message: "Reviews fetched successfully",
 
       data: reviews,
 
@@ -234,11 +222,11 @@ const getProductReviews = async (req, res, next) => {
 
 const createReview = async (req, res, next) => {
   try {
-    const userId = req.user?._id;
-
     // -------------------------------------------------
     // Authentication
     // -------------------------------------------------
+
+    const userId = req.user?._id;
 
     if (!userId) {
       return next(new ApiError(401, "Authentication required"));
@@ -248,25 +236,7 @@ const createReview = async (req, res, next) => {
     // Request Body
     // -------------------------------------------------
 
-    const {
-      productId,
-      variantId = null,
-      rating,
-      title = "",
-      comment,
-    } = req.body;
-
-    // -------------------------------------------------
-    // Product ID
-    // -------------------------------------------------
-
-    if (!productId) {
-      return next(new ApiError(400, "Product ID is required"));
-    }
-
-    if (!isValidObjectId(productId)) {
-      return next(new ApiError(400, "Invalid product ID"));
-    }
+    const { rating, title = "", comment } = req.body;
 
     // -------------------------------------------------
     // Rating
@@ -317,55 +287,15 @@ const createReview = async (req, res, next) => {
     }
 
     // -------------------------------------------------
-    // Product
-    // -------------------------------------------------
-
-    const product = await Product.findOne({
-      _id: productId,
-      isDeleted: false,
-    }).lean();
-
-    if (!product) {
-      return next(new ApiError(404, "Product not found"));
-    }
-
-    // -------------------------------------------------
-    // Variant Validation
-    // -------------------------------------------------
-
-    let validVariantId = null;
-
-    if (variantId) {
-      if (!isValidObjectId(variantId)) {
-        return next(new ApiError(400, "Invalid variant ID"));
-      }
-
-      const variants = Array.isArray(product.variants) ? product.variants : [];
-
-      const variantExists = variants.some(
-        (variant) => String(variant?._id) === String(variantId),
-      );
-
-      if (!variantExists) {
-        return next(
-          new ApiError(400, "Selected variant does not belong to this product"),
-        );
-      }
-
-      validVariantId = variantId;
-    }
-
-    // -------------------------------------------------
     // Existing Review
     // -------------------------------------------------
 
     const existingReview = await Review.findOne({
       user: userId,
-      product: productId,
     }).lean();
 
     if (existingReview) {
-      return next(new ApiError(409, "You have already reviewed this product"));
+      return next(new ApiError(409, "You have already submitted a review"));
     }
 
     // -------------------------------------------------
@@ -375,18 +305,11 @@ const createReview = async (req, res, next) => {
     const review = await Review.create({
       user: userId,
 
-      product: productId,
-
-      variant: validVariantId,
-
       rating: numericRating,
 
       title: trimmedTitle,
 
       comment: trimmedComment,
-
-      // No purchase requirement.
-      order: null,
 
       status: "approved",
 
@@ -401,10 +324,6 @@ const createReview = async (req, res, next) => {
       .populate({
         path: "user",
         select: "name avatar",
-      })
-      .populate({
-        path: "product",
-        select: "name slug",
       })
       .lean();
 
@@ -425,7 +344,7 @@ const createReview = async (req, res, next) => {
     // -------------------------------------------------
 
     if (error?.code === 11000) {
-      return next(new ApiError(409, "You have already reviewed this product"));
+      return next(new ApiError(409, "You have already submitted a review"));
     }
 
     next(error);
@@ -433,7 +352,7 @@ const createReview = async (req, res, next) => {
 };
 
 // =====================================================
-// GET MY REVIEWS
+// GET MY REVIEW
 // GET /api/reviews/my
 // AUTHENTICATED USER
 // =====================================================
@@ -450,12 +369,8 @@ const getMyReviews = async (req, res, next) => {
       user: userId,
     })
       .populate({
-        path: "product",
-        select: "name slug",
-      })
-      .populate({
-        path: "order",
-        select: "orderNumber orderStatus createdAt",
+        path: "user",
+        select: "name avatar",
       })
       .sort({
         createdAt: -1,
@@ -490,13 +405,25 @@ const updateReview = async (req, res, next) => {
 
     const { rating, title, comment } = req.body;
 
+    // -------------------------------------------------
+    // Authentication
+    // -------------------------------------------------
+
     if (!userId) {
       return next(new ApiError(401, "Authentication required"));
     }
 
+    // -------------------------------------------------
+    // Review ID
+    // -------------------------------------------------
+
     if (!isValidObjectId(reviewId)) {
       return next(new ApiError(400, "Invalid review ID"));
     }
+
+    // -------------------------------------------------
+    // Find User's Review
+    // -------------------------------------------------
 
     const review = await Review.findOne({
       _id: reviewId,
@@ -599,10 +526,6 @@ const updateReview = async (req, res, next) => {
         path: "user",
         select: "name avatar",
       })
-      .populate({
-        path: "product",
-        select: "name slug",
-      })
       .lean();
 
     return res.status(200).json({
@@ -614,7 +537,7 @@ const updateReview = async (req, res, next) => {
     });
   } catch (error) {
     if (error?.code === 11000) {
-      return next(new ApiError(409, "You have already reviewed this product"));
+      return next(new ApiError(409, "You have already submitted a review"));
     }
 
     next(error);
@@ -633,13 +556,25 @@ const deleteReview = async (req, res, next) => {
 
     const { reviewId } = req.params;
 
+    // -------------------------------------------------
+    // Authentication
+    // -------------------------------------------------
+
     if (!userId) {
       return next(new ApiError(401, "Authentication required"));
     }
 
+    // -------------------------------------------------
+    // Review ID
+    // -------------------------------------------------
+
     if (!isValidObjectId(reviewId)) {
       return next(new ApiError(400, "Invalid review ID"));
     }
+
+    // -------------------------------------------------
+    // Delete User's Review
+    // -------------------------------------------------
 
     const review = await Review.findOneAndDelete({
       _id: reviewId,
@@ -664,15 +599,24 @@ const deleteReview = async (req, res, next) => {
 
 // =====================================================
 // ADMIN GET REVIEWS
+// GET /api/reviews/admin
 // =====================================================
 
 const getAllReviewsAdmin = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status, productId, rating } = req.query;
+    const { page = 1, limit = 20, status, rating } = req.query;
+
+    // -------------------------------------------------
+    // Pagination
+    // -------------------------------------------------
 
     const currentPage = Math.max(Number(page) || 1, 1);
 
     const perPage = Math.min(Math.max(Number(limit) || 20, 1), 100);
+
+    // -------------------------------------------------
+    // Filter
+    // -------------------------------------------------
 
     const filter = {};
 
@@ -691,22 +635,10 @@ const getAllReviewsAdmin = async (req, res, next) => {
     }
 
     // -------------------------------------------------
-    // Product
-    // -------------------------------------------------
-
-    if (productId) {
-      if (!isValidObjectId(productId)) {
-        return next(new ApiError(400, "Invalid product ID"));
-      }
-
-      filter.product = productId;
-    }
-
-    // -------------------------------------------------
     // Rating
     // -------------------------------------------------
 
-    if (rating) {
+    if (rating !== undefined) {
       const numericRating = Number(rating);
 
       if (
@@ -720,21 +652,21 @@ const getAllReviewsAdmin = async (req, res, next) => {
       filter.rating = numericRating;
     }
 
+    // -------------------------------------------------
+    // Pagination
+    // -------------------------------------------------
+
     const skip = (currentPage - 1) * perPage;
+
+    // -------------------------------------------------
+    // Fetch Reviews
+    // -------------------------------------------------
 
     const [reviews, total] = await Promise.all([
       Review.find(filter)
         .populate({
           path: "user",
           select: "name email avatar",
-        })
-        .populate({
-          path: "product",
-          select: "name slug",
-        })
-        .populate({
-          path: "order",
-          select: "orderNumber orderStatus",
         })
         .sort({
           createdAt: -1,
@@ -769,6 +701,7 @@ const getAllReviewsAdmin = async (req, res, next) => {
 
 // =====================================================
 // ADMIN MODERATE REVIEW
+// PATCH /api/reviews/admin/:reviewId
 // =====================================================
 
 const moderateReview = async (req, res, next) => {
@@ -779,19 +712,62 @@ const moderateReview = async (req, res, next) => {
 
     const { status, rejectionReason = "" } = req.body;
 
+    // -------------------------------------------------
+    // Authentication
+    // -------------------------------------------------
+
     if (!adminId) {
       return next(new ApiError(401, "Authentication required"));
     }
 
+    // -------------------------------------------------
+    // Review ID
+    // -------------------------------------------------
+
+    if (!isValidObjectId(reviewId)) {
+      return next(new ApiError(400, "Invalid review ID"));
+    }
+
+    // -------------------------------------------------
+    // Status
+    // -------------------------------------------------
+
     if (!["pending", "approved", "rejected"].includes(status)) {
       return next(new ApiError(400, "Invalid review status"));
     }
+
+    // -------------------------------------------------
+    // Rejection Reason
+    // -------------------------------------------------
+
+    if (status === "rejected" && !String(rejectionReason).trim()) {
+      return next(
+        new ApiError(
+          400,
+          "Rejection reason is required when rejecting a review",
+        ),
+      );
+    }
+
+    if (String(rejectionReason).trim().length > 500) {
+      return next(
+        new ApiError(400, "Rejection reason cannot exceed 500 characters"),
+      );
+    }
+
+    // -------------------------------------------------
+    // Find Review
+    // -------------------------------------------------
 
     const review = await Review.findById(reviewId);
 
     if (!review) {
       return next(new ApiError(404, "Review not found"));
     }
+
+    // -------------------------------------------------
+    // Update
+    // -------------------------------------------------
 
     review.status = status;
 
@@ -804,14 +780,14 @@ const moderateReview = async (req, res, next) => {
 
     await review.save();
 
+    // -------------------------------------------------
+    // Populate
+    // -------------------------------------------------
+
     const updatedReview = await Review.findById(review._id)
       .populate({
         path: "user",
         select: "name email avatar",
-      })
-      .populate({
-        path: "product",
-        select: "name slug",
       })
       .lean();
 
@@ -829,11 +805,24 @@ const moderateReview = async (req, res, next) => {
 
 // =====================================================
 // ADMIN DELETE REVIEW
+// DELETE /api/reviews/admin/:reviewId
 // =====================================================
 
 const deleteReviewAdmin = async (req, res, next) => {
   try {
     const { reviewId } = req.params;
+
+    // -------------------------------------------------
+    // Validate Review ID
+    // -------------------------------------------------
+
+    if (!isValidObjectId(reviewId)) {
+      return next(new ApiError(400, "Invalid review ID"));
+    }
+
+    // -------------------------------------------------
+    // Delete
+    // -------------------------------------------------
 
     const review = await Review.findByIdAndDelete(reviewId);
 
@@ -858,7 +847,7 @@ const deleteReviewAdmin = async (req, res, next) => {
 // =====================================================
 
 module.exports = {
-  getProductReviews,
+  getReviews,
   createReview,
   getMyReviews,
   updateReview,
