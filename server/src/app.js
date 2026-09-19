@@ -27,6 +27,7 @@ const adminProductRoutes = require("./routes/adminProductRoutes");
 const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const addressRoutes = require("./routes/addressRoutes");
+const checkoutRoutes = require("./routes/checkoutRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const sellerOrderRoutes = require("./routes/sellerOrderRoutes");
 const adminOrderRoutes = require("./routes/adminOrderRoutes");
@@ -45,9 +46,7 @@ const adminAnalyticsRoutes = require("./routes/adminAnalyticsRoutes");
 
 const errorMiddleware = require("./middleware/errorMiddleware");
 
-const {
-    generalLimiter,
-} = require("./middleware/rateLimitterMiddleware");
+const { generalLimiter } = require("./middleware/rateLimitterMiddleware");
 
 // =====================================================
 // APP
@@ -61,10 +60,7 @@ app.set("trust proxy", 1);
 // RAW BODY MUST COME BEFORE express.json()
 // =====================================================
 
-app.use(
-    "/api/payment",
-    paymentWebhookRoutes
-);
+app.use("/api/payment", paymentWebhookRoutes);
 
 // =====================================================
 // BODY PARSERS
@@ -73,9 +69,9 @@ app.use(
 app.use(express.json());
 
 app.use(
-    express.urlencoded({
-        extended: true,
-    })
+  express.urlencoded({
+    extended: true,
+  }),
 );
 
 // =====================================================
@@ -95,11 +91,11 @@ app.use(morganConfig);
 // =====================================================
 
 app.use(
-    helmet({
-        crossOriginResourcePolicy: {
-            policy: "cross-origin",
-        },
-    })
+  helmet({
+    crossOriginResourcePolicy: {
+      policy: "cross-origin",
+    },
+  }),
 );
 
 // =====================================================
@@ -107,10 +103,10 @@ app.use(
 // =====================================================
 
 app.use(
-    cors({
-        origin: process.env.FRONTEND_URL,
-        credentials: true,
-    })
+  cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+  }),
 );
 
 // =====================================================
@@ -127,233 +123,155 @@ app.use(generalLimiter);
 // AVATARS
 // =====================================================
 
-const avatarPath = path.join(
-    __dirname,
-    "../public/avatars"
-);
+const avatarPath = path.join(__dirname, "../public/avatars");
 
-app.use(
-    "/avatars",
-    express.static(avatarPath)
-);
+app.use("/avatars", express.static(avatarPath));
 
 // =====================================================
 // BRAND LOGOS
 // =====================================================
 
-const brandPath = path.join(
-    __dirname,
-    "../public/brands"
-);
+const brandPath = path.join(__dirname, "../public/brands");
 
-app.use(
-    "/brands",
-    express.static(brandPath)
-);
+app.use("/brands", express.static(brandPath));
 
 // =====================================================
 // ROOT API CHECK
 // =====================================================
 
-app.get(
-    "/",
-    (req, res) => {
-        return res.status(200).json({
-            success: true,
-            message: "E-Commerce API is running",
-        });
-    }
-);
+app.get("/", (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "E-Commerce API is running",
+  });
+});
 
 // =====================================================
 // HEALTH CHECK API
 // GET /api/health
 // =====================================================
 
-app.get(
-    "/api/health",
-    (req, res) => {
-        return res.status(200).json({
-            success: true,
-            status: "UP",
-            message: "E-Commerce API is healthy",
-            timestamp: new Date().toISOString(),
-            uptime: process.uptime(),
-        });
-    }
-);
+app.get("/api/health", (req, res) => {
+  return res.status(200).json({
+    success: true,
+    status: "UP",
+    message: "E-Commerce API is healthy",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
 
 // =====================================================
 // API ROUTES
 // =====================================================
 
 // AUTH
-app.use(
-    "/api/auth",
-    authRoutes
-);
+app.use("/api/auth", authRoutes);
 
 // USER
-app.use(
-    "/api/user",
-    userRoutes
-);
+app.use("/api/user", userRoutes);
 
 // CATEGORY
-app.use(
-    "/api/categories",
-    categoryRoutes
-);
+app.use("/api/categories", categoryRoutes);
 
 // BRAND
-app.use(
-    "/api/brands",
-    brandRoutes
-);
+app.use("/api/brands", brandRoutes);
 
 // PRODUCT
-app.use(
-    "/api/products",
-    productRoutes
-);
+app.use("/api/products", productRoutes);
 
-app.use(
-    "/api/products",
-    productImageRoutes
-);
+app.use("/api/products", productImageRoutes);
 
 // SELLER
-app.use(
-    "/api/seller",
-    sellerRoutes
-);
+app.use("/api/seller", sellerRoutes);
 
 // =====================================================
 // ADMIN
 // =====================================================
 
-app.use(
-    "/api/admin",
-    adminUserRoutes
-);
+app.use("/api/admin", adminUserRoutes);
 
-app.use(
-    "/api/admin",
-    adminProductRoutes
-);
+app.use("/api/admin", adminProductRoutes);
 
-app.use(
-    "/api/admin",
-    adminDashboardRoutes
-);
+app.use("/api/admin", adminDashboardRoutes);
 
 // =====================================================
 // CART
 // =====================================================
 
-app.use(
-    "/api/cart",
-    cartRoutes
-);
+app.use("/api/cart", cartRoutes);
 
 // =====================================================
 // ADDRESS
 // =====================================================
 
-app.use(
-    "/api/address",
-    addressRoutes
-);
+app.use("/api/address", addressRoutes);
+
+// =====================================================
+// CHECKOUT
+// =====================================================
+
+app.use("/api/checkout", checkoutRoutes);
 
 // =====================================================
 // ORDER
 // =====================================================
 
-app.use(
-    "/api/orders",
-    orderRoutes
-);
+app.use("/api/orders", orderRoutes);
 
 // =====================================================
 // SELLER ORDER
 // =====================================================
 
-app.use(
-    "/api/seller/orders",
-    sellerOrderRoutes
-);
+app.use("/api/seller/orders", sellerOrderRoutes);
 
 // =====================================================
 // ADMIN ORDER
 // =====================================================
 
-app.use(
-    "/api/admin/orders",
-    adminOrderRoutes
-);
+app.use("/api/admin/orders", adminOrderRoutes);
 
 // =====================================================
 // PAYMENT
 // =====================================================
 
-app.use(
-    "/api/payment",
-    paymentRoutes
-);
+app.use("/api/payment", paymentRoutes);
 
 // =====================================================
 // SHIPPING
 // =====================================================
 
-app.use(
-    "/api/shipping",
-    shippingRoutes
-);
+app.use("/api/shipping", shippingRoutes);
 
 // =====================================================
 // WISHLIST
 // =====================================================
 
-app.use(
-    "/api/wishlist",
-    wishlistRoutes
-);
+app.use("/api/wishlist", wishlistRoutes);
 
 // =====================================================
 // REVIEWS
 // =====================================================
 
-app.use(
-    "/api/reviews",
-    reviewRoutes
-);
+app.use("/api/reviews", reviewRoutes);
 
 // =====================================================
 // COUPONS
 // =====================================================
 
-app.use(
-    "/api/coupons",
-    couponRoutes
-);
+app.use("/api/coupons", couponRoutes);
 
 // =====================================================
 // NOTIFICATIONS
 // =====================================================
 
-app.use(
-    "/api/notifications",
-    notificationRoutes
-);
+app.use("/api/notifications", notificationRoutes);
 
 // =====================================================
 // ADMIN ANALYTICS
 // =====================================================
 
-app.use(
-    "/api/admin/analytics",
-    adminAnalyticsRoutes
-);
+app.use("/api/admin/analytics", adminAnalyticsRoutes);
 
 // =====================================================
 // ERROR HANDLER
