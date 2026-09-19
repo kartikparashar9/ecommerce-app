@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const Review = require("../models/reviewModel");
+const Product = require("../models/productModel");
 
 const ApiError = require("../utils/ApiError");
 
@@ -34,7 +35,7 @@ const getReviews = async (req, res, next) => {
     // Query
     // -------------------------------------------------
 
-    const { page = 1, limit = 10, rating } = req.query;
+    const { page = 1, limit = 10, rating, productId } = req.query;
 
     // -------------------------------------------------
     // Pagination
@@ -53,6 +54,18 @@ const getReviews = async (req, res, next) => {
     const filter = {
       status: "approved",
     };
+
+    // -------------------------------------------------
+    // Product Filter
+    // -------------------------------------------------
+
+    if (productId !== undefined) {
+      if (!isValidObjectId(productId)) {
+        return next(new ApiError(400, "Invalid product ID"));
+      }
+
+      filter.product = productId;
+    }
 
     // -------------------------------------------------
     // Rating Filter
@@ -236,7 +249,25 @@ const createReview = async (req, res, next) => {
     // Request Body
     // -------------------------------------------------
 
-    const { rating, title = "", comment } = req.body;
+    const { productId, rating, title = "", comment } = req.body;
+
+    // -------------------------------------------------
+    // Product
+    // -------------------------------------------------
+
+    if (!isValidObjectId(productId)) {
+      return next(new ApiError(400, "Invalid product ID"));
+    }
+
+    const product = await Product.findOne({
+      _id: productId,
+      isActive: true,
+      isDeleted: false,
+    }).select("_id");
+
+    if (!product) {
+      return next(new ApiError(404, "Product not found"));
+    }
 
     // -------------------------------------------------
     // Rating
@@ -292,6 +323,7 @@ const createReview = async (req, res, next) => {
 
     const existingReview = await Review.findOne({
       user: userId,
+      product: productId,
     }).lean();
 
     if (existingReview) {
@@ -304,6 +336,8 @@ const createReview = async (req, res, next) => {
 
     const review = await Review.create({
       user: userId,
+
+      product: productId,
 
       rating: numericRating,
 

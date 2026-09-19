@@ -35,23 +35,25 @@ const validateReviewId = (req, res, next) => {
 // =====================================================
 // CREATE REVIEW
 // =====================================================
-// User only sends:
+// User sends:
+// productId
 // rating
 // title
 // comment
 //
 // user ID comes from authentication:
 // req.user._id
-//
-// No:
-// productId
-// orderId
-// variantId
 // =====================================================
 
 const validateCreateReview = (req, res, next) => {
   try {
-    const { rating, title, comment } = req.body;
+    const { productId, rating, title, comment } = req.body;
+
+    // -------------------------------------------------
+    // Product
+    // -------------------------------------------------
+
+    validateObjectId(productId, "product ID");
 
     // -------------------------------------------------
     // Rating

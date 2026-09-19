@@ -17,6 +17,17 @@ const reviewSchema = new mongoose.Schema(
     },
 
     // -------------------------------------------------
+    // PRODUCT
+    // -------------------------------------------------
+
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      default: null,
+      index: true,
+    },
+
+    // -------------------------------------------------
     // RATING
     // -------------------------------------------------
 
@@ -100,12 +111,13 @@ const reviewSchema = new mongoose.Schema(
 // =====================================================
 
 // -----------------------------------------------------
-// One User = One Website Review
+// One User = One Review Per Product
 // -----------------------------------------------------
 
 reviewSchema.index(
   {
     user: 1,
+    product: 1,
   },
   {
     unique: true,

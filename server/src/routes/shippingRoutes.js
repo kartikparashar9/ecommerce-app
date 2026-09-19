@@ -66,7 +66,7 @@ router.post(
     "/",
     authorizeRoles(
         "admin",
-        "seller"
+        "seller",
     ),
     validateCreateShipping,
     createShipping
