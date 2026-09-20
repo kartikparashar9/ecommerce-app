@@ -402,7 +402,9 @@ const googleLogin = asyncHandler(async (req, res) => {
       email: payload.email,
       googleId: payload.sub,
       gender,
-      avatar: gender === "male" ? "/avatars/male.png" : "/avatars/female.png",
+      avatar: gender === "male"
+      ? "/avatars/male-avatar.jpg"
+      : "/avatars/female-avatar.jpg",
       role,
       isEmailVerified: true,
     });
