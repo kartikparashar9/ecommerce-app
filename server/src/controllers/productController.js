@@ -10,7 +10,7 @@ const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 
 // =====================================================
-// GENERATE SLUG
+// HELPERS
 // =====================================================
 
 const generateSlug = (value) => {
@@ -18,15 +18,16 @@ const generateSlug = (value) => {
     .toString()
     .trim()
     .toLowerCase()
+    .replace(/&/g, "and")
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
 };
 
-// =====================================================
-// GENERATE UNIQUE SLUG
-// =====================================================
+// -----------------------------------------------------
+// Unique Slug
+// -----------------------------------------------------
 
 const generateUniqueSlug = async (name, excludeProductId = null) => {
   const baseSlug = generateSlug(name);
@@ -39,7 +40,9 @@ const generateUniqueSlug = async (name, excludeProductId = null) => {
   let counter = 1;
 
   while (true) {
-    const query = { slug };
+    const query = {
+      slug,
+    };
 
     if (excludeProductId) {
       query._id = {
@@ -47,23 +50,25 @@ const generateUniqueSlug = async (name, excludeProductId = null) => {
       };
     }
 
-    const existingProduct = await Product.findOne(query);
+    const exists = await Product.exists(query);
 
-    if (!existingProduct) {
+    if (!exists) {
       return slug;
     }
 
     slug = `${baseSlug}-${counter}`;
+
     counter++;
   }
 };
 
-// =====================================================
-// CALCULATE FINAL PRICE
-// =====================================================
+// -----------------------------------------------------
+// Final Price
+// -----------------------------------------------------
 
 const calculateFinalPrice = (basePrice, discount = 0) => {
   const price = Number(basePrice);
+
   const discountValue = Number(discount);
 
   if (!Number.isFinite(price) || !Number.isFinite(discountValue)) {
@@ -81,9 +86,9 @@ const calculateFinalPrice = (basePrice, discount = 0) => {
   return Number((price - (price * discountValue) / 100).toFixed(2));
 };
 
-// =====================================================
-// CALCULATE TOTAL STOCK
-// =====================================================
+// -----------------------------------------------------
+// Total Stock
+// -----------------------------------------------------
 
 const calculateTotalStock = (variants = []) => {
   return variants.reduce((total, variant) => {
@@ -95,9 +100,9 @@ const calculateTotalStock = (variants = []) => {
   }, 0);
 };
 
-// =====================================================
-// GET CURRENT SELLER
-// =====================================================
+// -----------------------------------------------------
+// Current Seller
+// -----------------------------------------------------
 
 const getCurrentSeller = async (userId) => {
   if (!userId) {
@@ -106,6 +111,7 @@ const getCurrentSeller = async (userId) => {
 
   const seller = await Seller.findOne({
     user: userId,
+
     isDeleted: {
       $ne: true,
     },
@@ -118,9 +124,9 @@ const getCurrentSeller = async (userId) => {
   return seller;
 };
 
-// =====================================================
-// VALIDATE SELLER
-// =====================================================
+// -----------------------------------------------------
+// Validate Seller
+// -----------------------------------------------------
 
 const validateSeller = async (userId) => {
   const seller = await getCurrentSeller(userId);
@@ -140,9 +146,9 @@ const validateSeller = async (userId) => {
   return seller;
 };
 
-// =====================================================
-// VALIDATE CATEGORY
-// =====================================================
+// -----------------------------------------------------
+// Validate Category
+// -----------------------------------------------------
 
 const validateCategory = async (categoryId) => {
   if (!categoryId || !mongoose.Types.ObjectId.isValid(categoryId)) {
@@ -151,6 +157,7 @@ const validateCategory = async (categoryId) => {
 
   const category = await Category.findOne({
     _id: categoryId,
+
     isDeleted: {
       $ne: true,
     },
@@ -164,7 +171,6 @@ const validateCategory = async (categoryId) => {
     throw new ApiError(400, "Selected category is inactive");
   }
 
-  // Seller can only use top-level category.
   if (category.parentCategory) {
     throw new ApiError(
       400,
@@ -175,9 +181,9 @@ const validateCategory = async (categoryId) => {
   return category;
 };
 
-// =====================================================
-// VALIDATE SUBCATEGORY
-// =====================================================
+// -----------------------------------------------------
+// Validate Subcategory
+// -----------------------------------------------------
 
 const validateSubcategory = async (subcategoryId, categoryId) => {
   if (
@@ -194,6 +200,7 @@ const validateSubcategory = async (subcategoryId, categoryId) => {
 
   const subcategory = await Category.findOne({
     _id: subcategoryId,
+
     isDeleted: {
       $ne: true,
     },
@@ -221,9 +228,9 @@ const validateSubcategory = async (subcategoryId, categoryId) => {
   return subcategory;
 };
 
-// =====================================================
-// VALIDATE BRAND
-// =====================================================
+// -----------------------------------------------------
+// Validate Brand
+// -----------------------------------------------------
 
 const validateBrand = async (brandId) => {
   if (!brandId || !mongoose.Types.ObjectId.isValid(brandId)) {
@@ -232,6 +239,7 @@ const validateBrand = async (brandId) => {
 
   const brand = await Brand.findOne({
     _id: brandId,
+
     isDeleted: {
       $ne: true,
     },
@@ -248,9 +256,9 @@ const validateBrand = async (brandId) => {
   return brand;
 };
 
-// =====================================================
-// VALIDATE CATEGORY + BRAND
-// =====================================================
+// -----------------------------------------------------
+// Validate Category + Brand
+// -----------------------------------------------------
 
 const validateCategoryAndBrand = async (categoryId, brandId) => {
   const [category, brand] = await Promise.all([
@@ -264,9 +272,9 @@ const validateCategoryAndBrand = async (categoryId, brandId) => {
   };
 };
 
-// =====================================================
-// VALIDATE VARIANT SKUS
-// =====================================================
+// -----------------------------------------------------
+// Validate Variant SKUs
+// -----------------------------------------------------
 
 const validateVariantSKUs = async (variants = [], excludeProductId = null) => {
   if (!Array.isArray(variants)) {
@@ -278,7 +286,7 @@ const validateVariantSKUs = async (variants = [], excludeProductId = null) => {
   }
 
   const skus = variants.map((variant) => {
-    if (!variant.sku || typeof variant.sku !== "string") {
+    if (!variant || typeof variant.sku !== "string" || !variant.sku.trim()) {
       throw new ApiError(400, "Every variant must have a SKU");
     }
 
@@ -295,6 +303,7 @@ const validateVariantSKUs = async (variants = [], excludeProductId = null) => {
     "variants.sku": {
       $in: skus,
     },
+
     isDeleted: {
       $ne: true,
     },
@@ -313,32 +322,44 @@ const validateVariantSKUs = async (variants = [], excludeProductId = null) => {
   }
 };
 
-// =====================================================
-// NORMALIZE VARIANTS
-// =====================================================
+// -----------------------------------------------------
+// Normalize Variants
+// -----------------------------------------------------
 
 const normalizeVariants = (variants = []) => {
-  return variants.map((variant) => ({
-    sku: variant.sku.trim().toUpperCase(),
+  return variants.map((variant) => {
+    const price = Number(variant.price);
 
-    color: typeof variant.color === "string" ? variant.color.trim() : "",
+    const stock = Number(variant.stock);
 
-    size: typeof variant.size === "string" ? variant.size.trim() : "",
+    if (!Number.isFinite(price) || price < 0) {
+      throw new ApiError(400, `Invalid price for variant ${variant.sku}`);
+    }
 
-    price: Number(variant.price),
+    if (!Number.isInteger(stock) || stock < 0) {
+      throw new ApiError(400, `Invalid stock for variant ${variant.sku}`);
+    }
 
-    stock: Number(variant.stock),
+    return {
+      sku: variant.sku.trim().toUpperCase(),
 
-    image: typeof variant.image === "string" ? variant.image.trim() : "",
+      color: typeof variant.color === "string" ? variant.color.trim() : "",
 
-    isActive: variant.isActive !== false,
-  }));
+      size: typeof variant.size === "string" ? variant.size.trim() : "",
+
+      price,
+
+      stock,
+
+      image: typeof variant.image === "string" ? variant.image.trim() : "",
+
+      isActive: variant.isActive !== false,
+    };
+  });
 };
 
 // =====================================================
 // CREATE PRODUCT
-// POST /api/products
-// ACCESS: seller
 // =====================================================
 
 const createProduct = asyncHandler(async (req, res) => {
@@ -360,18 +381,18 @@ const createProduct = asyncHandler(async (req, res) => {
   } = req.body;
 
   // -------------------------------------------------
-  // Basic validation
+  // Basic Validation
   // -------------------------------------------------
 
-  if (!name || typeof name !== "string") {
+  if (typeof name !== "string" || !name.trim()) {
     throw new ApiError(400, "Product name is required");
   }
 
-  if (!description || typeof description !== "string") {
+  if (typeof description !== "string" || !description.trim()) {
     throw new ApiError(400, "Product description is required");
   }
 
-  if (basePrice === undefined || basePrice === null) {
+  if (basePrice === undefined || basePrice === null || basePrice === "") {
     throw new ApiError(400, "Base price is required");
   }
 
@@ -381,14 +402,10 @@ const createProduct = asyncHandler(async (req, res) => {
 
   await validateCategoryAndBrand(category, brand);
 
-  // -------------------------------------------------
-  // Subcategory
-  // -------------------------------------------------
-
   await validateSubcategory(subcategory, category);
 
   // -------------------------------------------------
-  // Duplicate product for same seller
+  // Duplicate
   // -------------------------------------------------
 
   const existingProduct = await Product.findOne({
@@ -409,37 +426,74 @@ const createProduct = asyncHandler(async (req, res) => {
   }
 
   // -------------------------------------------------
-  // Generate slug
+  // Slug
   // -------------------------------------------------
 
   const slug = await generateUniqueSlug(name);
 
   // -------------------------------------------------
-  // Validate SKUs
+  // Variants
   // -------------------------------------------------
 
   await validateVariantSKUs(variants);
 
-  // -------------------------------------------------
-  // Normalize variants
-  // -------------------------------------------------
-
   const normalizedVariants = normalizeVariants(variants);
 
   // -------------------------------------------------
-  // Final price
+  // Price
   // -------------------------------------------------
 
-  const finalPrice = calculateFinalPrice(basePrice, discount);
+  const numericBasePrice = Number(basePrice);
+
+  const numericDiscount = Number(discount);
+
+  if (!Number.isFinite(numericBasePrice) || numericBasePrice < 0) {
+    throw new ApiError(400, "Invalid base price");
+  }
+
+  if (
+    !Number.isFinite(numericDiscount) ||
+    numericDiscount < 0 ||
+    numericDiscount > 100
+  ) {
+    throw new ApiError(400, "Discount must be between 0 and 100");
+  }
+
+  const finalPrice = calculateFinalPrice(numericBasePrice, numericDiscount);
 
   // -------------------------------------------------
-  // Total stock
+  // Images
   // -------------------------------------------------
+
+  if (images !== undefined && !Array.isArray(images)) {
+    throw new ApiError(400, "Images must be an array");
+  }
+
+  const productImages = Array.isArray(images)
+    ? images
+        .filter((image) => typeof image === "string")
+        .map((image) => image.trim())
+        .filter(Boolean)
+    : [];
+
+  if (productImages.length > 10) {
+    throw new ApiError(400, "Product cannot have more than 10 images");
+  }
+
+  // -------------------------------------------------
+  // Low Stock Threshold
+  // -------------------------------------------------
+
+  const threshold = Number(lowStockThreshold);
+
+  if (!Number.isInteger(threshold) || threshold < 0) {
+    throw new ApiError(400, "Invalid low stock threshold");
+  }
 
   const totalStock = calculateTotalStock(normalizedVariants);
 
   // -------------------------------------------------
-  // Create product
+  // Create
   // -------------------------------------------------
 
   const product = await Product.create({
@@ -460,21 +514,21 @@ const createProduct = asyncHandler(async (req, res) => {
 
     seller: seller._id,
 
-    images: Array.isArray(images) ? images : [],
+    images: productImages,
 
-    basePrice: Number(basePrice),
+    basePrice: numericBasePrice,
 
-    discount: Number(discount),
+    discount: numericDiscount,
 
     finalPrice,
 
     totalStock,
 
-    lowStockThreshold: Number(lowStockThreshold),
+    lowStockThreshold: threshold,
 
     variants: normalizedVariants,
 
-    attributes,
+    attributes: attributes && typeof attributes === "object" ? attributes : {},
 
     isActive: true,
 
@@ -491,9 +545,7 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 // =====================================================
-// GET AVAILABLE CATEGORIES FOR SELLER
-// GET /api/products/seller/categories
-// ACCESS: seller
+// SELLER CATEGORIES
 // =====================================================
 
 const getSellerCategories = asyncHandler(async (req, res) => {
@@ -520,9 +572,7 @@ const getSellerCategories = asyncHandler(async (req, res) => {
 });
 
 // =====================================================
-// GET AVAILABLE SUBCATEGORIES
-// GET /api/products/seller/categories/:categoryId/subcategories
-// ACCESS: seller
+// SELLER SUBCATEGORIES
 // =====================================================
 
 const getSellerSubcategories = asyncHandler(async (req, res) => {
@@ -559,9 +609,7 @@ const getSellerSubcategories = asyncHandler(async (req, res) => {
 });
 
 // =====================================================
-// GET AVAILABLE BRANDS FOR SELLER
-// GET /api/products/seller/brands
-// ACCESS: seller
+// SELLER BRANDS
 // =====================================================
 
 const getSellerBrands = asyncHandler(async (req, res) => {
@@ -586,9 +634,99 @@ const getSellerBrands = asyncHandler(async (req, res) => {
 });
 
 // =====================================================
+// PRODUCT FILTER HELPER
+// =====================================================
+
+const applyProductFilters = (
+  query,
+  { search, category, brand, seller, minPrice, maxPrice, isActive, isFeatured },
+) => {
+  if (search && typeof search === "string" && search.trim()) {
+    query.$text = {
+      $search: search.trim(),
+    };
+  }
+
+  if (category) {
+    if (!mongoose.Types.ObjectId.isValid(category)) {
+      throw new ApiError(400, "Invalid category ID");
+    }
+
+    query.category = category;
+  }
+
+  if (brand) {
+    if (!mongoose.Types.ObjectId.isValid(brand)) {
+      throw new ApiError(400, "Invalid brand ID");
+    }
+
+    query.brand = brand;
+  }
+
+  if (seller) {
+    if (!mongoose.Types.ObjectId.isValid(seller)) {
+      throw new ApiError(400, "Invalid seller ID");
+    }
+
+    query.seller = seller;
+  }
+
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    const priceFilter = {};
+
+    if (minPrice !== undefined) {
+      const min = Number(minPrice);
+
+      if (!Number.isFinite(min) || min < 0) {
+        throw new ApiError(400, "Invalid minimum price");
+      }
+
+      priceFilter.$gte = min;
+    }
+
+    if (maxPrice !== undefined) {
+      const max = Number(maxPrice);
+
+      if (!Number.isFinite(max) || max < 0) {
+        throw new ApiError(400, "Invalid maximum price");
+      }
+
+      priceFilter.$lte = max;
+    }
+
+    if (
+      priceFilter.$gte !== undefined &&
+      priceFilter.$lte !== undefined &&
+      priceFilter.$gte > priceFilter.$lte
+    ) {
+      throw new ApiError(
+        400,
+        "Minimum price cannot be greater than maximum price",
+      );
+    }
+
+    query.finalPrice = priceFilter;
+  }
+
+  if (isActive !== undefined) {
+    if (!["true", "false"].includes(isActive)) {
+      throw new ApiError(400, "isActive must be true or false");
+    }
+
+    query.isActive = isActive === "true";
+  }
+
+  if (isFeatured !== undefined) {
+    if (!["true", "false"].includes(isFeatured)) {
+      throw new ApiError(400, "isFeatured must be true or false");
+    }
+
+    query.isFeatured = isFeatured === "true";
+  }
+};
+
+// =====================================================
 // GET ACTIVE PRODUCTS
-// GET /api/products/active
-// ACCESS: public
 // =====================================================
 
 const getActiveProducts = asyncHandler(async (req, res) => {
@@ -613,78 +751,13 @@ const getActiveProducts = asyncHandler(async (req, res) => {
     isDeleted: false,
   };
 
-  // -------------------------------------------------
-  // Search
-  // -------------------------------------------------
-
-  if (search && search.trim()) {
-    query.$text = {
-      $search: search.trim(),
-    };
-  }
-
-  // -------------------------------------------------
-  // Category
-  // -------------------------------------------------
-
-  if (category) {
-    if (!mongoose.Types.ObjectId.isValid(category)) {
-      throw new ApiError(400, "Invalid category ID");
-    }
-
-    query.category = category;
-  }
-
-  // -------------------------------------------------
-  // Brand
-  // -------------------------------------------------
-
-  if (brand) {
-    if (!mongoose.Types.ObjectId.isValid(brand)) {
-      throw new ApiError(400, "Invalid brand ID");
-    }
-
-    query.brand = brand;
-  }
-
-  // -------------------------------------------------
-  // Price filter
-  // -------------------------------------------------
-
-  if (minPrice !== undefined || maxPrice !== undefined) {
-    query.finalPrice = {};
-
-    if (minPrice !== undefined) {
-      const min = Number(minPrice);
-
-      if (!Number.isFinite(min) || min < 0) {
-        throw new ApiError(400, "Invalid minimum price");
-      }
-
-      query.finalPrice.$gte = min;
-    }
-
-    if (maxPrice !== undefined) {
-      const max = Number(maxPrice);
-
-      if (!Number.isFinite(max) || max < 0) {
-        throw new ApiError(400, "Invalid maximum price");
-      }
-
-      query.finalPrice.$lte = max;
-    }
-
-    if (
-      query.finalPrice.$gte !== undefined &&
-      query.finalPrice.$lte !== undefined &&
-      query.finalPrice.$gte > query.finalPrice.$lte
-    ) {
-      throw new ApiError(
-        400,
-        "Minimum price cannot be greater than maximum price",
-      );
-    }
-  }
+  applyProductFilters(query, {
+    search,
+    category,
+    brand,
+    minPrice,
+    maxPrice,
+  });
 
   const [products, totalProducts] = await Promise.all([
     Product.find(query)
@@ -710,11 +783,8 @@ const getActiveProducts = asyncHandler(async (req, res) => {
 
       pagination: {
         currentPage: pageNumber,
-
         limit: limitNumber,
-
         totalProducts,
-
         totalPages,
 
         hasNextPage: pageNumber < totalPages,
@@ -727,8 +797,6 @@ const getActiveProducts = asyncHandler(async (req, res) => {
 
 // =====================================================
 // GET ALL PRODUCTS
-// GET /api/products
-// ACCESS: authenticated
 // =====================================================
 
 const getAllProducts = asyncHandler(async (req, res) => {
@@ -755,103 +823,16 @@ const getAllProducts = asyncHandler(async (req, res) => {
     isDeleted: false,
   };
 
-  // -------------------------------------------------
-  // Search
-  // -------------------------------------------------
-
-  if (search && search.trim()) {
-    query.$text = {
-      $search: search.trim(),
-    };
-  }
-
-  // -------------------------------------------------
-  // Category
-  // -------------------------------------------------
-
-  if (category) {
-    if (!mongoose.Types.ObjectId.isValid(category)) {
-      throw new ApiError(400, "Invalid category ID");
-    }
-
-    query.category = category;
-  }
-
-  // -------------------------------------------------
-  // Brand
-  // -------------------------------------------------
-
-  if (brand) {
-    if (!mongoose.Types.ObjectId.isValid(brand)) {
-      throw new ApiError(400, "Invalid brand ID");
-    }
-
-    query.brand = brand;
-  }
-
-  // -------------------------------------------------
-  // Seller
-  // -------------------------------------------------
-
-  if (seller) {
-    if (!mongoose.Types.ObjectId.isValid(seller)) {
-      throw new ApiError(400, "Invalid seller ID");
-    }
-
-    query.seller = seller;
-  }
-
-  // -------------------------------------------------
-  // Price
-  // -------------------------------------------------
-
-  if (minPrice !== undefined || maxPrice !== undefined) {
-    query.finalPrice = {};
-
-    if (minPrice !== undefined) {
-      const min = Number(minPrice);
-
-      if (!Number.isFinite(min) || min < 0) {
-        throw new ApiError(400, "Invalid minimum price");
-      }
-
-      query.finalPrice.$gte = min;
-    }
-
-    if (maxPrice !== undefined) {
-      const max = Number(maxPrice);
-
-      if (!Number.isFinite(max) || max < 0) {
-        throw new ApiError(400, "Invalid maximum price");
-      }
-
-      query.finalPrice.$lte = max;
-    }
-  }
-
-  // -------------------------------------------------
-  // Active
-  // -------------------------------------------------
-
-  if (isActive !== undefined) {
-    if (!["true", "false"].includes(isActive)) {
-      throw new ApiError(400, "isActive must be true or false");
-    }
-
-    query.isActive = isActive === "true";
-  }
-
-  // -------------------------------------------------
-  // Featured
-  // -------------------------------------------------
-
-  if (isFeatured !== undefined) {
-    if (!["true", "false"].includes(isFeatured)) {
-      throw new ApiError(400, "isFeatured must be true or false");
-    }
-
-    query.isFeatured = isFeatured === "true";
-  }
+  applyProductFilters(query, {
+    search,
+    category,
+    brand,
+    seller,
+    minPrice,
+    maxPrice,
+    isActive,
+    isFeatured,
+  });
 
   const [products, totalProducts] = await Promise.all([
     Product.find(query)
@@ -877,11 +858,8 @@ const getAllProducts = asyncHandler(async (req, res) => {
 
       pagination: {
         currentPage: pageNumber,
-
         limit: limitNumber,
-
         totalProducts,
-
         totalPages,
 
         hasNextPage: pageNumber < totalPages,
@@ -894,8 +872,6 @@ const getAllProducts = asyncHandler(async (req, res) => {
 
 // =====================================================
 // GET PRODUCT BY ID
-// GET /api/products/:productId
-// PUBLIC
 // =====================================================
 
 const getProductById = asyncHandler(async (req, res) => {
@@ -927,16 +903,20 @@ const getProductById = asyncHandler(async (req, res) => {
 
 // =====================================================
 // GET PRODUCT BY SLUG
-// GET /api/products/slug/:slug
-// PUBLIC
 // =====================================================
 
 const getProductBySlug = asyncHandler(async (req, res) => {
   const { slug } = req.params;
 
+  if (typeof slug !== "string" || !slug.trim()) {
+    throw new ApiError(400, "Valid product slug is required");
+  }
+
   const product = await Product.findOne({
-    slug: slug.toLowerCase(),
+    slug: slug.trim().toLowerCase(),
+
     isDeleted: false,
+
     isActive: true,
   })
     .populate("category", "name slug")
@@ -956,8 +936,6 @@ const getProductBySlug = asyncHandler(async (req, res) => {
 
 // =====================================================
 // GET MY PRODUCTS
-// GET /api/products/seller/my-products
-// SELLER
 // =====================================================
 
 const getMyProducts = asyncHandler(async (req, res) => {
@@ -965,50 +943,21 @@ const getMyProducts = asyncHandler(async (req, res) => {
 
   const { page = 1, limit = 20, search = "", isActive } = req.query;
 
-  // -------------------------------------------------
-  // Pagination
-  // -------------------------------------------------
-
   const pageNumber = Math.max(Number(page) || 1, 1);
 
   const limitNumber = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
   const skip = (pageNumber - 1) * limitNumber;
 
-  // -------------------------------------------------
-  // Query
-  // -------------------------------------------------
-
   const query = {
     seller: seller._id,
     isDeleted: false,
   };
 
-  // -------------------------------------------------
-  // Search
-  // -------------------------------------------------
-
-  if (search && search.trim()) {
-    query.$text = {
-      $search: search.trim(),
-    };
-  }
-
-  // -------------------------------------------------
-  // Active Filter
-  // -------------------------------------------------
-
-  if (isActive !== undefined) {
-    if (!["true", "false"].includes(isActive)) {
-      throw new ApiError(400, "isActive must be true or false");
-    }
-
-    query.isActive = isActive === "true";
-  }
-
-  // -------------------------------------------------
-  // Fetch Products
-  // -------------------------------------------------
+  applyProductFilters(query, {
+    search,
+    isActive,
+  });
 
   const [products, totalProducts] = await Promise.all([
     Product.find(query)
@@ -1025,15 +974,7 @@ const getMyProducts = asyncHandler(async (req, res) => {
     Product.countDocuments(query),
   ]);
 
-  // -------------------------------------------------
-  // Pagination Data
-  // -------------------------------------------------
-
   const totalPages = Math.ceil(totalProducts / limitNumber);
-
-  // -------------------------------------------------
-  // Response
-  // -------------------------------------------------
 
   return res.status(200).json(
     new ApiResponse(200, "Seller products fetched successfully", {
@@ -1041,11 +982,8 @@ const getMyProducts = asyncHandler(async (req, res) => {
 
       pagination: {
         currentPage: pageNumber,
-
         limit: limitNumber,
-
         totalProducts,
-
         totalPages,
 
         hasNextPage: pageNumber < totalPages,
@@ -1058,8 +996,6 @@ const getMyProducts = asyncHandler(async (req, res) => {
 
 // =====================================================
 // UPDATE PRODUCT
-// PUT /api/products/:productId
-// SELLER
 // =====================================================
 
 const updateProduct = asyncHandler(async (req, res) => {
@@ -1217,7 +1153,10 @@ const updateProduct = asyncHandler(async (req, res) => {
       throw new ApiError(400, "Product cannot have more than 10 images");
     }
 
-    product.images = images;
+    product.images = images
+      .filter((image) => typeof image === "string")
+      .map((image) => image.trim())
+      .filter(Boolean);
   }
 
   // -------------------------------------------------
@@ -1249,7 +1188,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
 
   // -------------------------------------------------
-  // Recalculate final price
+  // Final Price
   // -------------------------------------------------
 
   if (basePrice !== undefined || discount !== undefined) {
@@ -1292,11 +1231,19 @@ const updateProduct = asyncHandler(async (req, res) => {
   // -------------------------------------------------
 
   if (attributes !== undefined) {
+    if (
+      !attributes ||
+      typeof attributes !== "object" ||
+      Array.isArray(attributes)
+    ) {
+      throw new ApiError(400, "Attributes must be an object");
+    }
+
     product.attributes = attributes;
   }
 
   // -------------------------------------------------
-  // Active status
+  // Active Status
   // -------------------------------------------------
 
   if (isActive !== undefined) {
@@ -1307,10 +1254,6 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.isActive = isActive;
   }
 
-  // -------------------------------------------------
-  // Save
-  // -------------------------------------------------
-
   await product.save();
 
   return res
@@ -1320,8 +1263,6 @@ const updateProduct = asyncHandler(async (req, res) => {
 
 // =====================================================
 // TOGGLE PRODUCT STATUS
-// PATCH /api/products/:productId/toggle-status
-// SELLER
 // =====================================================
 
 const toggleProductStatus = asyncHandler(async (req, res) => {
@@ -1362,8 +1303,6 @@ const toggleProductStatus = asyncHandler(async (req, res) => {
 
 // =====================================================
 // DELETE PRODUCT
-// DELETE /api/products/:productId
-// SELLER
 // =====================================================
 
 const deleteProduct = asyncHandler(async (req, res) => {
@@ -1388,7 +1327,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
     );
   }
 
-  // Permanently delete product from MongoDB
+  // Keep existing permanent-delete behavior.
   await Product.deleteOne({
     _id: product._id,
     seller: seller._id,

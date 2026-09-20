@@ -11,17 +11,9 @@ const ApiError = require("../utils/ApiError");
 // HELPERS
 // =====================================================
 
-// -----------------------------------------------------
-// ObjectId Validation
-// -----------------------------------------------------
-
 const isValidObjectId = (id) => {
-  return mongoose.Types.ObjectId.isValid(id);
+  return Boolean(id && mongoose.Types.ObjectId.isValid(id));
 };
-
-// -----------------------------------------------------
-// Find Variant
-// -----------------------------------------------------
 
 const findVariant = (product, variantId) => {
   if (!product || !Array.isArray(product.variants) || !variantId) {
@@ -29,33 +21,24 @@ const findVariant = (product, variantId) => {
   }
 
   return product.variants.find(
-    (variant) => variant._id && variant._id.toString() === variantId.toString(),
+    (variant) =>
+      variant?._id && variant._id.toString() === variantId.toString(),
   );
 };
 
-// -----------------------------------------------------
-// Round Money
-// -----------------------------------------------------
-
 const roundMoney = (value) => {
-  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
-};
+  const number = Number(value);
 
-// -----------------------------------------------------
-// Generate Order Number
-// -----------------------------------------------------
+  if (!Number.isFinite(number)) {
+    return NaN;
+  }
+
+  return Math.round((number + Number.EPSILON) * 100) / 100;
+};
 
 const generateOrderNumber = () => {
-  const timestamp = Date.now();
-
-  const random = Math.floor(100000 + Math.random() * 900000);
-
-  return `ORD-${timestamp}-${random}`;
+  return `ORD-${Date.now()}-${Math.floor(100000 + Math.random() * 900000)}`;
 };
-
-// -----------------------------------------------------
-// Normalize Payment Method
-// -----------------------------------------------------
 
 const normalizePaymentMethod = (paymentMethod) => {
   if (typeof paymentMethod !== "string") {
@@ -64,11 +47,7 @@ const normalizePaymentMethod = (paymentMethod) => {
 
   const normalized = paymentMethod.trim().toLowerCase();
 
-  if (!["cod", "online"].includes(normalized)) {
-    return null;
-  }
-
-  return normalized;
+  return ["cod", "online"].includes(normalized) ? normalized : null;
 };
 
 // =====================================================
@@ -83,42 +62,24 @@ const createOrder = async (req, res, next) => {
 
     const { addressId, paymentMethod = "cod" } = req.body;
 
-    // -------------------------------------------------
-    // Authentication
-    // -------------------------------------------------
-
     if (!userId) {
-      return next(new ApiError(401, "Authentication required"));
+      throw new ApiError(401, "Authentication required");
     }
 
-    // -------------------------------------------------
-    // Validate Address ID
-    // -------------------------------------------------
-
-    if (!addressId || !isValidObjectId(addressId)) {
-      return next(new ApiError(400, "Valid addressId is required"));
+    if (!isValidObjectId(addressId)) {
+      throw new ApiError(400, "Valid addressId is required");
     }
-
-    // -------------------------------------------------
-    // Validate Payment Method
-    // -------------------------------------------------
 
     const normalizedPaymentMethod = normalizePaymentMethod(paymentMethod);
 
     if (!normalizedPaymentMethod) {
-      return next(
-        new ApiError(400, "Payment method must be either cod or online"),
-      );
+      throw new ApiError(400, "Payment method must be either cod or online");
     }
-
-    // -------------------------------------------------
-    // Start Transaction
-    // -------------------------------------------------
 
     session.startTransaction();
 
     // -------------------------------------------------
-    // Find Address
+    // Address
     // -------------------------------------------------
 
     const address = await Address.findOne({
@@ -131,7 +92,7 @@ const createOrder = async (req, res, next) => {
     }
 
     // -------------------------------------------------
-    // Find Cart
+    // Cart
     // -------------------------------------------------
 
     const cart = await Cart.findOne({
@@ -142,34 +103,34 @@ const createOrder = async (req, res, next) => {
       throw new ApiError(400, "Your cart is empty");
     }
 
-    // -------------------------------------------------
-    // Prepare
-    // -------------------------------------------------
-
     const orderItems = [];
-
     let subtotal = 0;
 
     // -------------------------------------------------
-    // Validate Cart Items
+    // Validate Cart
     // -------------------------------------------------
 
     for (const cartItem of cart.items) {
-      // ---------------------------------------------
-      // Validate Quantity
-      // ---------------------------------------------
-
       const quantity = Number(cartItem.quantity);
 
       if (!Number.isInteger(quantity) || quantity < 1) {
         throw new ApiError(400, "Invalid cart quantity");
       }
 
-      // ---------------------------------------------
-      // Product
-      // ---------------------------------------------
+      if (!isValidObjectId(cartItem.product)) {
+        throw new ApiError(400, "Invalid product in cart");
+      }
 
-      const product = await Product.findById(cartItem.product).session(session);
+      if (!isValidObjectId(cartItem.variant)) {
+        throw new ApiError(400, "Invalid product variant in cart");
+      }
+
+      const product = await Product.findOne({
+        _id: cartItem.product,
+        isDeleted: {
+          $ne: true,
+        },
+      }).session(session);
 
       if (!product) {
         throw new ApiError(
@@ -178,17 +139,9 @@ const createOrder = async (req, res, next) => {
         );
       }
 
-      // ---------------------------------------------
-      // Product Active
-      // ---------------------------------------------
-
       if (!product.isActive) {
         throw new ApiError(400, `${product.name} is currently unavailable`);
       }
-
-      // ---------------------------------------------
-      // Variant
-      // ---------------------------------------------
 
       const variant = findVariant(product, cartItem.variant);
 
@@ -196,20 +149,12 @@ const createOrder = async (req, res, next) => {
         throw new ApiError(404, `Variant for ${product.name} no longer exists`);
       }
 
-      // ---------------------------------------------
-      // Variant Active
-      // ---------------------------------------------
-
-      if (!variant.isActive) {
+      if (variant.isActive === false) {
         throw new ApiError(
           400,
           `Selected variant of ${product.name} is unavailable`,
         );
       }
-
-      // ---------------------------------------------
-      // Price
-      // ---------------------------------------------
 
       const price = Number(variant.price);
 
@@ -217,11 +162,11 @@ const createOrder = async (req, res, next) => {
         throw new ApiError(400, `Invalid price for ${product.name}`);
       }
 
-      // ---------------------------------------------
-      // Stock Validation
-      // ---------------------------------------------
+      const stock = Number(variant.stock);
 
-      const stock = Number(variant.stock) || 0;
+      if (!Number.isInteger(stock) || stock < 0) {
+        throw new ApiError(400, `Invalid stock for ${product.name}`);
+      }
 
       if (stock < quantity) {
         throw new ApiError(
@@ -230,24 +175,14 @@ const createOrder = async (req, res, next) => {
         );
       }
 
-      // ---------------------------------------------
-      // Item Total
-      // ---------------------------------------------
-
       const itemTotal = roundMoney(price * quantity);
 
       subtotal = roundMoney(subtotal + itemTotal);
 
-      // ---------------------------------------------
-      // Snapshot
-      // ---------------------------------------------
-
       orderItems.push({
         product: product._id,
 
-        // Product.seller must contain
-        // Seller._id because Order.items.seller
-        // now references Seller.
+        // Seller._id
         seller: product.seller,
 
         variant: variant._id,
@@ -273,21 +208,12 @@ const createOrder = async (req, res, next) => {
     }
 
     // -------------------------------------------------
-    // Shipping Fee
+    // Totals
     // -------------------------------------------------
 
     const shippingFee = subtotal >= 999 ? 0 : 50;
 
-    // -------------------------------------------------
-    // Discount
-    // -------------------------------------------------
-
-    // Coupon module will modify this later.
     const discount = 0;
-
-    // -------------------------------------------------
-    // Total
-    // -------------------------------------------------
 
     const totalAmount = roundMoney(subtotal + shippingFee - discount);
 
@@ -296,26 +222,18 @@ const createOrder = async (req, res, next) => {
     }
 
     // -------------------------------------------------
-    // Shipping Address Snapshot
+    // Address Snapshot
     // -------------------------------------------------
 
     const shippingAddress = {
       name: address.name,
-
       phone: address.phone,
-
       addressLine1: address.addressLine1,
-
       addressLine2: address.addressLine2 || "",
-
       landmark: address.landmark || "",
-
       city: address.city,
-
       state: address.state,
-
       country: address.country || "India",
-
       postalCode: address.postalCode,
     };
 
@@ -358,19 +276,19 @@ const createOrder = async (req, res, next) => {
     for (const cartItem of cart.items) {
       const quantity = Number(cartItem.quantity);
 
-      const productId = cartItem.product;
-
-      const variantId = cartItem.variant;
-
       const stockUpdate = await Product.updateOne(
         {
-          _id: productId,
+          _id: cartItem.product,
+
+          isDeleted: {
+            $ne: true,
+          },
 
           isActive: true,
 
           variants: {
             $elemMatch: {
-              _id: variantId,
+              _id: cartItem.variant,
               isActive: true,
               stock: {
                 $gte: quantity,
@@ -403,10 +321,6 @@ const createOrder = async (req, res, next) => {
       session,
     });
 
-    // -------------------------------------------------
-    // Commit
-    // -------------------------------------------------
-
     await session.commitTransaction();
 
     // -------------------------------------------------
@@ -419,11 +333,9 @@ const createOrder = async (req, res, next) => {
         select: "name slug",
       })
       .populate({
-        // Order.items.seller → Seller._id
         path: "items.seller",
         select: "businessName businessEmail businessPhone verificationStatus",
         populate: {
-          // Seller.user → User._id
           path: "user",
           select: "name email phone avatar",
         },
@@ -432,9 +344,7 @@ const createOrder = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-
       message: "Order created successfully",
-
       data: createdOrder,
     });
   } catch (error) {
@@ -474,11 +384,8 @@ const getMyOrders = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-
       message: "Orders fetched successfully",
-
       count: orders.length,
-
       data: orders,
     });
   } catch (error) {
@@ -493,7 +400,6 @@ const getMyOrders = async (req, res, next) => {
 const getOrderById = async (req, res, next) => {
   try {
     const userId = req.user?._id;
-
     const { orderId } = req.params;
 
     if (!userId) {
@@ -520,9 +426,7 @@ const getOrderById = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-
       message: "Order fetched successfully",
-
       data: order,
     });
   } catch (error) {
@@ -539,31 +443,27 @@ const cancelOrder = async (req, res, next) => {
 
   try {
     const userId = req.user?._id;
-
     const { orderId } = req.params;
 
     const reason =
       typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
 
     if (!userId) {
-      return next(new ApiError(401, "Authentication required"));
+      throw new ApiError(401, "Authentication required");
     }
 
     if (!isValidObjectId(orderId)) {
-      return next(new ApiError(400, "Invalid order ID"));
+      throw new ApiError(400, "Invalid order ID");
     }
 
     if (reason.length > 500) {
-      return next(
-        new ApiError(400, "Cancellation reason cannot exceed 500 characters"),
+      throw new ApiError(
+        400,
+        "Cancellation reason cannot exceed 500 characters",
       );
     }
 
     session.startTransaction();
-
-    // -------------------------------------------------
-    // Find Order
-    // -------------------------------------------------
 
     const order = await Order.findOne({
       _id: orderId,
@@ -574,17 +474,9 @@ const cancelOrder = async (req, res, next) => {
       throw new ApiError(404, "Order not found");
     }
 
-    // -------------------------------------------------
-    // Already Cancelled
-    // -------------------------------------------------
-
     if (order.orderStatus === "cancelled") {
       throw new ApiError(400, "Order is already cancelled");
     }
-
-    // -------------------------------------------------
-    // Cancellation Rules
-    // -------------------------------------------------
 
     const cancellableStatuses = ["pending", "confirmed", "processing"];
 
@@ -596,15 +488,23 @@ const cancelOrder = async (req, res, next) => {
     }
 
     // -------------------------------------------------
-    // Restore Stock Atomically
+    // Restore Stock
     // -------------------------------------------------
 
     for (const item of order.items) {
       const quantity = Number(item.quantity);
 
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        throw new ApiError(400, `Invalid quantity for ${item.productName}`);
+      }
+
       const stockRestore = await Product.updateOne(
         {
           _id: item.product,
+
+          isDeleted: {
+            $ne: true,
+          },
 
           variants: {
             $elemMatch: {
@@ -627,45 +527,21 @@ const cancelOrder = async (req, res, next) => {
       }
     }
 
-    // -------------------------------------------------
-    // Update Order
-    // -------------------------------------------------
-
     order.orderStatus = "cancelled";
 
     order.cancelledAt = new Date();
 
     order.cancellationReason = reason;
 
-    // -------------------------------------------------
-    // IMPORTANT PAYMENT RULE
-    // -------------------------------------------------
-
-    /*
-     * Do NOT directly change:
-     *
-     * paid -> refunded
-     *
-     * here.
-     *
-     * Actual refund must be processed by
-     * Payment module/Razorpay and then
-     * paymentStatus should be updated.
-     */
+    // Payment refund remains separate.
+    // Razorpay/payment module should
+    // process the actual refund.
 
     await order.save({
       session,
     });
 
-    // -------------------------------------------------
-    // Commit
-    // -------------------------------------------------
-
     await session.commitTransaction();
-
-    // -------------------------------------------------
-    // Response
-    // -------------------------------------------------
 
     const cancelledOrder = await Order.findById(order._id)
       .populate({
@@ -676,9 +552,7 @@ const cancelOrder = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-
       message: "Order cancelled successfully",
-
       data: cancelledOrder,
     });
   } catch (error) {

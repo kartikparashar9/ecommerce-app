@@ -11,8 +11,18 @@ const ApiError = require("../utils/ApiError");
 // =====================================================
 
 const roundMoney = (value) => {
-  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return NaN;
+  }
+
+  return Math.round((number + Number.EPSILON) * 100) / 100;
 };
+
+// -----------------------------------------------------
+// Find Variant
+// -----------------------------------------------------
 
 const findVariant = (product, variantId) => {
   if (!product || !Array.isArray(product.variants) || !variantId) {
@@ -20,7 +30,8 @@ const findVariant = (product, variantId) => {
   }
 
   return product.variants.find(
-    (variant) => variant._id && variant._id.toString() === variantId.toString(),
+    (variant) =>
+      variant?._id && variant._id.toString() === variantId.toString(),
   );
 };
 
@@ -30,7 +41,7 @@ const findVariant = (product, variantId) => {
 
 const buildCheckout = async (userId, addressId) => {
   // -------------------------------------------------
-  // USER
+  // Authentication
   // -------------------------------------------------
 
   if (!userId) {
@@ -38,7 +49,7 @@ const buildCheckout = async (userId, addressId) => {
   }
 
   // -------------------------------------------------
-  // ADDRESS
+  // Address Validation
   // -------------------------------------------------
 
   if (!addressId || !mongoose.Types.ObjectId.isValid(addressId)) {
@@ -55,7 +66,7 @@ const buildCheckout = async (userId, addressId) => {
   }
 
   // -------------------------------------------------
-  // CART
+  // Cart
   // -------------------------------------------------
 
   const cart = await Cart.findOne({
@@ -67,15 +78,14 @@ const buildCheckout = async (userId, addressId) => {
   }
 
   // -------------------------------------------------
-  // PREPARE
+  // Prepare
   // -------------------------------------------------
 
   const items = [];
-
   let subtotal = 0;
 
   // -------------------------------------------------
-  // VALIDATE CART ITEMS
+  // Validate Cart Items
   // -------------------------------------------------
 
   for (const cartItem of cart.items) {
@@ -85,11 +95,30 @@ const buildCheckout = async (userId, addressId) => {
       throw new ApiError(400, "Invalid cart quantity");
     }
 
-    // ---------------------------------------------
-    // PRODUCT
-    // ---------------------------------------------
+    if (
+      !cartItem.product ||
+      !mongoose.Types.ObjectId.isValid(cartItem.product)
+    ) {
+      throw new ApiError(400, "Invalid product in cart");
+    }
 
-    const product = await Product.findById(cartItem.product).lean();
+    if (
+      !cartItem.variant ||
+      !mongoose.Types.ObjectId.isValid(cartItem.variant)
+    ) {
+      throw new ApiError(400, "Invalid product variant in cart");
+    }
+
+    // -------------------------------------------------
+    // Product
+    // -------------------------------------------------
+
+    const product = await Product.findOne({
+      _id: cartItem.product,
+      isDeleted: {
+        $ne: true,
+      },
+    }).lean();
 
     if (!product) {
       throw new ApiError(
@@ -98,17 +127,17 @@ const buildCheckout = async (userId, addressId) => {
       );
     }
 
-    // ---------------------------------------------
-    // PRODUCT ACTIVE
-    // ---------------------------------------------
+    // -------------------------------------------------
+    // Product Active
+    // -------------------------------------------------
 
-    if (!product.isActive || product.isDeleted) {
+    if (!product.isActive) {
       throw new ApiError(400, `${product.name} is currently unavailable`);
     }
 
-    // ---------------------------------------------
-    // VARIANT
-    // ---------------------------------------------
+    // -------------------------------------------------
+    // Variant
+    // -------------------------------------------------
 
     const variant = findVariant(product, cartItem.variant);
 
@@ -116,20 +145,20 @@ const buildCheckout = async (userId, addressId) => {
       throw new ApiError(404, `Variant for ${product.name} no longer exists`);
     }
 
-    // ---------------------------------------------
-    // VARIANT ACTIVE
-    // ---------------------------------------------
+    // -------------------------------------------------
+    // Variant Active
+    // -------------------------------------------------
 
-    if (!variant.isActive) {
+    if (variant.isActive === false) {
       throw new ApiError(
         400,
         `Selected variant of ${product.name} is unavailable`,
       );
     }
 
-    // ---------------------------------------------
-    // PRICE
-    // ---------------------------------------------
+    // -------------------------------------------------
+    // Price
+    // -------------------------------------------------
 
     const price = Number(variant.price);
 
@@ -137,11 +166,15 @@ const buildCheckout = async (userId, addressId) => {
       throw new ApiError(400, `Invalid price for ${product.name}`);
     }
 
-    // ---------------------------------------------
-    // STOCK
-    // ---------------------------------------------
+    // -------------------------------------------------
+    // Stock
+    // -------------------------------------------------
 
-    const stock = Number(variant.stock) || 0;
+    const stock = Number(variant.stock);
+
+    if (!Number.isInteger(stock) || stock < 0) {
+      throw new ApiError(400, `Invalid stock for ${product.name}`);
+    }
 
     if (stock < quantity) {
       throw new ApiError(
@@ -150,17 +183,21 @@ const buildCheckout = async (userId, addressId) => {
       );
     }
 
-    // ---------------------------------------------
-    // ITEM TOTAL
-    // ---------------------------------------------
+    // -------------------------------------------------
+    // Item Total
+    // -------------------------------------------------
 
     const itemTotal = roundMoney(price * quantity);
 
+    if (!Number.isFinite(itemTotal)) {
+      throw new ApiError(400, `Invalid item total for ${product.name}`);
+    }
+
     subtotal = roundMoney(subtotal + itemTotal);
 
-    // ---------------------------------------------
-    // CHECKOUT ITEM
-    // ---------------------------------------------
+    // -------------------------------------------------
+    // Checkout Item
+    // -------------------------------------------------
 
     items.push({
       cartItemId: cartItem._id,
@@ -189,27 +226,25 @@ const buildCheckout = async (userId, addressId) => {
   }
 
   // -------------------------------------------------
-  // SHIPPING
+  // Shipping
   // -------------------------------------------------
 
   const shipping = subtotal >= 999 ? 0 : 50;
 
   // -------------------------------------------------
-  // DISCOUNT
+  // Discount
   // -------------------------------------------------
 
-  // Coupon support can be connected here later.
   const discount = 0;
 
   // -------------------------------------------------
-  // TAX
+  // Tax
   // -------------------------------------------------
 
-  // Existing order flow does not calculate tax.
   const tax = 0;
 
   // -------------------------------------------------
-  // TOTAL
+  // Total
   // -------------------------------------------------
 
   const total = roundMoney(subtotal - discount + shipping + tax);
@@ -219,7 +254,7 @@ const buildCheckout = async (userId, addressId) => {
   }
 
   // -------------------------------------------------
-  // RETURN
+  // Response
   // -------------------------------------------------
 
   return {
@@ -239,13 +274,9 @@ const buildCheckout = async (userId, addressId) => {
     items,
 
     subtotal,
-
     discount,
-
     shipping,
-
     tax,
-
     total,
 
     totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
@@ -256,23 +287,19 @@ const buildCheckout = async (userId, addressId) => {
 
 // =====================================================
 // CHECKOUT SUMMARY
-// =====================================================
-
 // POST /api/checkout/summary
+// =====================================================
 
 const getCheckoutSummary = async (req, res, next) => {
   try {
     const userId = req.user?._id;
-
     const { addressId } = req.body;
 
     const summary = await buildCheckout(userId, addressId);
 
     return res.status(200).json({
       success: true,
-
       message: "Checkout summary fetched successfully",
-
       data: summary,
     });
   } catch (error) {
@@ -282,9 +309,8 @@ const getCheckoutSummary = async (req, res, next) => {
 
 // =====================================================
 // CHECKOUT VALIDATION
-// =====================================================
-
 // POST /api/checkout/validate
+// =====================================================
 
 const validateCheckoutData = async (req, res, next) => {
   try {
@@ -294,6 +320,13 @@ const validateCheckoutData = async (req, res, next) => {
 
     const summary = await buildCheckout(userId, addressId);
 
+    if (
+      paymentMethod !== undefined &&
+      !["cod", "online"].includes(String(paymentMethod).trim().toLowerCase())
+    ) {
+      throw new ApiError(400, "Payment method must be either cod or online");
+    }
+
     return res.status(200).json({
       success: true,
 
@@ -301,7 +334,6 @@ const validateCheckoutData = async (req, res, next) => {
 
       data: {
         valid: true,
-
         isValid: true,
 
         addressId,
@@ -309,17 +341,12 @@ const validateCheckoutData = async (req, res, next) => {
         paymentMethod,
 
         subtotal: summary.subtotal,
-
         discount: summary.discount,
-
         shipping: summary.shipping,
-
         tax: summary.tax,
-
         total: summary.total,
 
         totalItems: summary.totalItems,
-
         itemCount: summary.itemCount,
       },
     });

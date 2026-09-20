@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
+
 const Category = require("../models/categoryModel");
+
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
@@ -7,10 +9,6 @@ const ApiResponse = require("../utils/ApiResponse");
 // =====================================================
 // HELPERS
 // =====================================================
-
-// -----------------------------------------------------
-// GENERATE SLUG
-// -----------------------------------------------------
 
 const generateSlug = (name) => {
   return name
@@ -24,42 +22,62 @@ const generateSlug = (name) => {
     .replace(/^-+|-+$/g, "");
 };
 
-// -----------------------------------------------------
-// ESCAPE REGEX
-// -----------------------------------------------------
-
 const escapeRegex = (value = "") => {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
-// -----------------------------------------------------
-// CREATE UNIQUE SLUG
-// -----------------------------------------------------
+const normalizeCategoryName = (name) => {
+  if (typeof name !== "string") {
+    throw new ApiError(400, "Category name is required");
+  }
+
+  const normalized = name.trim();
+
+  if (!normalized) {
+    throw new ApiError(400, "Category name is required");
+  }
+
+  if (normalized.length < 2) {
+    throw new ApiError(400, "Category name must be at least 2 characters");
+  }
+
+  if (normalized.length > 100) {
+    throw new ApiError(400, "Category name cannot exceed 100 characters");
+  }
+
+  return normalized;
+};
 
 const createUniqueSlug = async (name, excludeId = null) => {
   const baseSlug = generateSlug(name);
 
+  if (!baseSlug) {
+    throw new ApiError(400, "Unable to generate valid category slug");
+  }
+
   let slug = baseSlug;
   let counter = 1;
 
-  const query = {
-    slug,
-  };
-
-  if (excludeId) {
-    query._id = {
-      $ne: excludeId,
+  while (true) {
+    const query = {
+      slug,
     };
-  }
 
-  while (await Category.exists(query)) {
+    if (excludeId) {
+      query._id = {
+        $ne: excludeId,
+      };
+    }
+
+    const exists = await Category.exists(query);
+
+    if (!exists) {
+      return slug;
+    }
+
     slug = `${baseSlug}-${counter}`;
     counter++;
-
-    query.slug = slug;
   }
-
-  return slug;
 };
 
 // =====================================================
@@ -69,39 +87,25 @@ const createUniqueSlug = async (name, excludeId = null) => {
 const createCategory = asyncHandler(async (req, res) => {
   const { name, description, image, parentCategory } = req.body;
 
-  // -------------------------------------------------
-  // NORMALIZE DATA
-  // -------------------------------------------------
+  const normalizedName = normalizeCategoryName(name);
 
-  const normalizedName = name.trim();
-  const normalizedParent = parentCategory || null;
+  let normalizedParent = null;
 
-  // -------------------------------------------------
-  // CHECK DUPLICATE CATEGORY
-  // -------------------------------------------------
-
-  const existingCategory = await Category.findOne({
-    name: {
-      $regex: `^${escapeRegex(normalizedName)}$`,
-      $options: "i",
-    },
-    parentCategory: normalizedParent,
-  });
-
-  if (existingCategory) {
-    throw new ApiError(409, "Category with this name already exists");
-  }
-
-  // -------------------------------------------------
-  // VALIDATE PARENT CATEGORY
-  // -------------------------------------------------
-
-  if (normalizedParent) {
-    if (!mongoose.Types.ObjectId.isValid(normalizedParent)) {
+  if (
+    parentCategory !== undefined &&
+    parentCategory !== null &&
+    parentCategory !== ""
+  ) {
+    if (!mongoose.Types.ObjectId.isValid(parentCategory)) {
       throw new ApiError(400, "Invalid parent category ID");
     }
 
-    const parent = await Category.findById(normalizedParent);
+    const parent = await Category.findOne({
+      _id: parentCategory,
+      isDeleted: {
+        $ne: true,
+      },
+    });
 
     if (!parent) {
       throw new ApiError(404, "Parent category not found");
@@ -113,30 +117,44 @@ const createCategory = asyncHandler(async (req, res) => {
         "Cannot create category under an inactive parent category",
       );
     }
+
+    normalizedParent = parent._id;
   }
 
-  // -------------------------------------------------
-  // CREATE UNIQUE SLUG
-  // -------------------------------------------------
+  const existingCategory = await Category.findOne({
+    name: {
+      $regex: `^${escapeRegex(normalizedName)}$`,
+      $options: "i",
+    },
+
+    parentCategory: normalizedParent,
+
+    isDeleted: {
+      $ne: true,
+    },
+  });
+
+  if (existingCategory) {
+    throw new ApiError(409, "Category with this name already exists");
+  }
 
   const slug = await createUniqueSlug(normalizedName);
 
-  // -------------------------------------------------
-  // CREATE CATEGORY
-  // -------------------------------------------------
-
   const category = await Category.create({
     name: normalizedName,
-    slug,
-    description: description?.trim() || "",
-    image: image?.trim() || "",
-    parentCategory: normalizedParent,
-    createdBy: req.user._id,
-  });
 
-  // -------------------------------------------------
-  // RESPONSE
-  // -------------------------------------------------
+    slug,
+
+    description: typeof description === "string" ? description.trim() : "",
+
+    image: typeof image === "string" ? image.trim() : "",
+
+    parentCategory: normalizedParent,
+
+    createdBy: req.user._id,
+
+    isActive: true,
+  });
 
   return res
     .status(201)
@@ -156,53 +174,27 @@ const getCategories = asyncHandler(async (req, res) => {
     limit = 20,
   } = req.query;
 
-  // -------------------------------------------------
-  // PUBLIC / ADMIN
-  // -------------------------------------------------
-
-  // GET /categories is public.
-  // Admin requests reach this controller with req.user.
   const isAdmin = req.user?.role === "admin";
-
-  // -------------------------------------------------
-  // NORMALIZE PAGINATION
-  // -------------------------------------------------
 
   const currentPage = Math.max(Number(page) || 1, 1);
 
   const perPage = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
-  const normalizedSearch = search.trim();
-
-  // -------------------------------------------------
-  // VALIDATE STATUS
-  // -------------------------------------------------
+  const normalizedSearch = typeof search === "string" ? search.trim() : "";
 
   if (!["all", "active", "inactive"].includes(status)) {
     throw new ApiError(400, "Invalid category status");
   }
 
-  // -------------------------------------------------
-  // DATABASE FILTER
-  // -------------------------------------------------
+  const filter = {
+    isDeleted: {
+      $ne: true,
+    },
+  };
 
-  const filter = {};
-
-  // -------------------------------------------------
-  // PUBLIC USER
-  // -------------------------------------------------
-
-  // Public users can only see active categories.
-  // They cannot request inactive/all categories.
   if (!isAdmin) {
     filter.isActive = true;
-  }
-
-  // -------------------------------------------------
-  // ADMIN STATUS FILTER
-  // -------------------------------------------------
-
-  if (isAdmin) {
+  } else {
     if (status === "active") {
       filter.isActive = true;
     }
@@ -210,24 +202,13 @@ const getCategories = asyncHandler(async (req, res) => {
     if (status === "inactive") {
       filter.isActive = false;
     }
-
-    // status === "all"
-    // No isActive filter is applied.
   }
-
-  // -------------------------------------------------
-  // SEARCH
-  // -------------------------------------------------
 
   if (normalizedSearch) {
     filter.$text = {
       $search: normalizedSearch,
     };
   }
-
-  // -------------------------------------------------
-  // PARENT CATEGORY
-  // -------------------------------------------------
 
   if (parentCategory === "root") {
     filter.parentCategory = null;
@@ -239,33 +220,15 @@ const getCategories = asyncHandler(async (req, res) => {
     filter.parentCategory = parentCategory;
   }
 
-  // -------------------------------------------------
-  // PAGINATION
-  // -------------------------------------------------
-
   const skip = (currentPage - 1) * perPage;
 
-  // -------------------------------------------------
-  // DATABASE QUERY
-  // -------------------------------------------------
-
   let categoryQuery = Category.find(filter);
-
-  // -------------------------------------------------
-  // PUBLIC RESPONSE FIELDS
-  // -------------------------------------------------
 
   if (!isAdmin) {
     categoryQuery = categoryQuery
       .select("name slug description image parentCategory")
       .populate("parentCategory", "name slug");
-  }
-
-  // -------------------------------------------------
-  // ADMIN RESPONSE FIELDS
-  // -------------------------------------------------
-
-  if (isAdmin) {
+  } else {
     categoryQuery = categoryQuery
       .populate("parentCategory", "name slug")
       .populate("createdBy", "name email");
@@ -283,36 +246,24 @@ const getCategories = asyncHandler(async (req, res) => {
     Category.countDocuments(filter),
   ]);
 
-  // -------------------------------------------------
-  // PAGINATION DATA
-  // -------------------------------------------------
-
   const totalPages = Math.ceil(totalCategories / perPage);
 
-  const responseData = {
-    categories,
+  return res.status(200).json(
+    new ApiResponse(200, "Categories fetched successfully", {
+      categories,
 
-    pagination: {
-      currentPage,
-      limit: perPage,
-      totalCategories,
-      totalPages,
+      pagination: {
+        currentPage,
+        limit: perPage,
+        totalCategories,
+        totalPages,
 
-      hasNextPage: currentPage < totalPages,
+        hasNextPage: currentPage < totalPages,
 
-      hasPreviousPage: currentPage > 1,
-    },
-  };
-
-  // -------------------------------------------------
-  // RESPONSE
-  // -------------------------------------------------
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(200, "Categories fetched successfully", responseData),
-    );
+        hasPreviousPage: currentPage > 1,
+      },
+    }),
+  );
 });
 
 // =====================================================
@@ -322,62 +273,40 @@ const getCategories = asyncHandler(async (req, res) => {
 const getCategoryById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  // -------------------------------------------------
-  // VALIDATE ID
-  // -------------------------------------------------
-
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, "Invalid category ID");
   }
 
-  // -------------------------------------------------
-  // PUBLIC / ADMIN
-  // -------------------------------------------------
-
   const isAdmin = req.user?.role === "admin";
 
-  // -------------------------------------------------
-  // DATABASE QUERY
-  // -------------------------------------------------
-
   let categoryQuery;
-
-  // -------------------------------------------------
-  // PUBLIC USER
-  // -------------------------------------------------
 
   if (!isAdmin) {
     categoryQuery = Category.findOne({
       _id: id,
       isActive: true,
+      isDeleted: {
+        $ne: true,
+      },
     })
       .select("name slug description image parentCategory")
       .populate("parentCategory", "name slug");
-  }
-
-  // -------------------------------------------------
-  // ADMIN
-  // -------------------------------------------------
-
-  if (isAdmin) {
-    categoryQuery = Category.findById(id)
+  } else {
+    categoryQuery = Category.findOne({
+      _id: id,
+      isDeleted: {
+        $ne: true,
+      },
+    })
       .populate("parentCategory", "name slug")
       .populate("createdBy", "name email");
   }
 
   const category = await categoryQuery.lean();
 
-  // -------------------------------------------------
-  // CATEGORY NOT FOUND
-  // -------------------------------------------------
-
   if (!category) {
     throw new ApiError(404, "Category not found");
   }
-
-  // -------------------------------------------------
-  // RESPONSE
-  // -------------------------------------------------
 
   return res
     .status(200)
@@ -391,44 +320,34 @@ const getCategoryById = asyncHandler(async (req, res) => {
 const getSubcategories = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  // -------------------------------------------------
-  // VALIDATE CATEGORY ID
-  // -------------------------------------------------
-
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, "Invalid category ID");
   }
 
-  // -------------------------------------------------
-  // CHECK PARENT CATEGORY
-  // -------------------------------------------------
-
   const parentCategory = await Category.findOne({
     _id: id,
     isActive: true,
+    isDeleted: {
+      $ne: true,
+    },
   }).select("_id name slug");
 
   if (!parentCategory) {
     throw new ApiError(404, "Category not found");
   }
 
-  // -------------------------------------------------
-  // GET ACTIVE SUBCATEGORIES
-  // -------------------------------------------------
-
   const subcategories = await Category.find({
     parentCategory: id,
     isActive: true,
+    isDeleted: {
+      $ne: true,
+    },
   })
     .select("name slug description image parentCategory")
     .sort({
       name: 1,
     })
     .lean();
-
-  // -------------------------------------------------
-  // RESPONSE
-  // -------------------------------------------------
 
   return res.status(200).json(
     new ApiResponse(200, "Subcategories fetched successfully", {
@@ -446,26 +365,23 @@ const updateCategory = asyncHandler(async (req, res) => {
 
   const { name, description, image, parentCategory, isActive } = req.body;
 
-  // -------------------------------------------------
-  // VALIDATE ID
-  // -------------------------------------------------
-
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, "Invalid category ID");
   }
 
-  // -------------------------------------------------
-  // FIND CATEGORY
-  // -------------------------------------------------
-
-  const category = await Category.findById(id);
+  const category = await Category.findOne({
+    _id: id,
+    isDeleted: {
+      $ne: true,
+    },
+  });
 
   if (!category) {
     throw new ApiError(404, "Category not found");
   }
 
   // -------------------------------------------------
-  // DETERMINE TARGET PARENT
+  // Target Parent
   // -------------------------------------------------
 
   let targetParent = category.parentCategory;
@@ -474,52 +390,45 @@ const updateCategory = asyncHandler(async (req, res) => {
     if (parentCategory === null || parentCategory === "") {
       targetParent = null;
     } else {
-      // ---------------------------------------------
-      // VALIDATE PARENT ID
-      // ---------------------------------------------
-
       if (!mongoose.Types.ObjectId.isValid(parentCategory)) {
         throw new ApiError(400, "Invalid parent category ID");
       }
-
-      // ---------------------------------------------
-      // PREVENT SELF PARENT
-      // ---------------------------------------------
 
       if (parentCategory.toString() === id.toString()) {
         throw new ApiError(400, "A category cannot be its own parent");
       }
 
-      // ---------------------------------------------
-      // FIND PARENT
-      // ---------------------------------------------
-
-      const parent = await Category.findById(parentCategory);
+      const parent = await Category.findOne({
+        _id: parentCategory,
+        isDeleted: {
+          $ne: true,
+        },
+      });
 
       if (!parent) {
         throw new ApiError(404, "Parent category not found");
       }
 
-      // ---------------------------------------------
-      // PARENT MUST BE ACTIVE
-      // ---------------------------------------------
-
       if (!parent.isActive) {
         throw new ApiError(400, "Cannot assign an inactive parent category");
       }
 
-      targetParent = parentCategory;
+      targetParent = parent._id;
     }
   }
 
   // -------------------------------------------------
-  // DETERMINE TARGET NAME
+  // Target Name
   // -------------------------------------------------
 
-  const targetName = name !== undefined ? name.trim() : category.name;
+  let targetName = category.name;
+
+  if (name !== undefined) {
+    targetName = normalizeCategoryName(name);
+  }
 
   // -------------------------------------------------
-  // CHECK DUPLICATE
+  // Duplicate
   // -------------------------------------------------
 
   const duplicateCategory = await Category.findOne({
@@ -533,6 +442,10 @@ const updateCategory = asyncHandler(async (req, res) => {
     },
 
     parentCategory: targetParent,
+
+    isDeleted: {
+      $ne: true,
+    },
   });
 
   if (duplicateCategory) {
@@ -540,7 +453,7 @@ const updateCategory = asyncHandler(async (req, res) => {
   }
 
   // -------------------------------------------------
-  // UPDATE NAME
+  // Name + Slug
   // -------------------------------------------------
 
   if (name !== undefined) {
@@ -550,23 +463,31 @@ const updateCategory = asyncHandler(async (req, res) => {
   }
 
   // -------------------------------------------------
-  // UPDATE DESCRIPTION
+  // Description
   // -------------------------------------------------
 
   if (description !== undefined) {
+    if (typeof description !== "string") {
+      throw new ApiError(400, "Description must be a string");
+    }
+
     category.description = description.trim();
   }
 
   // -------------------------------------------------
-  // UPDATE IMAGE
+  // Image
   // -------------------------------------------------
 
   if (image !== undefined) {
+    if (typeof image !== "string") {
+      throw new ApiError(400, "Image must be a string");
+    }
+
     category.image = image.trim();
   }
 
   // -------------------------------------------------
-  // UPDATE PARENT CATEGORY
+  // Parent
   // -------------------------------------------------
 
   if (parentCategory !== undefined) {
@@ -574,7 +495,7 @@ const updateCategory = asyncHandler(async (req, res) => {
   }
 
   // -------------------------------------------------
-  // UPDATE ACTIVE STATUS
+  // Status
   // -------------------------------------------------
 
   if (isActive !== undefined) {
@@ -585,15 +506,7 @@ const updateCategory = asyncHandler(async (req, res) => {
     category.isActive = isActive;
   }
 
-  // -------------------------------------------------
-  // SAVE
-  // -------------------------------------------------
-
   await category.save();
-
-  // -------------------------------------------------
-  // RESPONSE
-  // -------------------------------------------------
 
   return res
     .status(200)
@@ -607,45 +520,35 @@ const updateCategory = asyncHandler(async (req, res) => {
 const deleteCategory = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  // -------------------------------------------------
-  // VALIDATE ID
-  // -------------------------------------------------
-
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, "Invalid category ID");
   }
 
-  // -------------------------------------------------
-  // FIND CATEGORY
-  // -------------------------------------------------
-
-  const category = await Category.findById(id);
+  const category = await Category.findOne({
+    _id: id,
+    isDeleted: {
+      $ne: true,
+    },
+  });
 
   if (!category) {
     throw new ApiError(404, "Category not found");
   }
 
-  // -------------------------------------------------
-  // CHECK CHILD CATEGORIES
-  // -------------------------------------------------
-
   const childCategoryExists = await Category.exists({
     parentCategory: id,
+    isDeleted: {
+      $ne: true,
+    },
   });
 
   if (childCategoryExists) {
     throw new ApiError(400, "Cannot delete category with child categories");
   }
 
-  // -------------------------------------------------
-  // DELETE CATEGORY
-  // -------------------------------------------------
-
-  await Category.findByIdAndDelete(id);
-
-  // -------------------------------------------------
-  // RESPONSE
-  // -------------------------------------------------
+  await Category.deleteOne({
+    _id: id,
+  });
 
   return res
     .status(200)
@@ -659,35 +562,24 @@ const deleteCategory = asyncHandler(async (req, res) => {
 const toggleCategoryStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  // -------------------------------------------------
-  // VALIDATE ID
-  // -------------------------------------------------
-
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, "Invalid category ID");
   }
 
-  // -------------------------------------------------
-  // FIND CATEGORY
-  // -------------------------------------------------
-
-  const category = await Category.findById(id);
+  const category = await Category.findOne({
+    _id: id,
+    isDeleted: {
+      $ne: true,
+    },
+  });
 
   if (!category) {
     throw new ApiError(404, "Category not found");
   }
 
-  // -------------------------------------------------
-  // TOGGLE STATUS
-  // -------------------------------------------------
-
   category.isActive = !category.isActive;
 
   await category.save();
-
-  // -------------------------------------------------
-  // RESPONSE
-  // -------------------------------------------------
 
   return res
     .status(200)
