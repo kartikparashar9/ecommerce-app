@@ -366,12 +366,12 @@ const resetPassword = asyncHandler(async (req, res) => {
 const googleLogin = asyncHandler(async (req, res) => {
   const { token, gender, role } = req.body;
 
-  if (!["user", "seller"].includes(role)) {
-  throw new ApiError(400, "Invalid account role");
-}
-
   if (!["male", "female"].includes(gender)) {
     throw new ApiError(400, "Gender must be male or female");
+  }
+
+  if (!["user", "seller"].includes(role)) {
+    throw new ApiError(400, "Invalid account role");
   }
 
   const ticket = await client.verifyIdToken({
@@ -402,7 +402,7 @@ const googleLogin = asyncHandler(async (req, res) => {
       email: payload.email,
       googleId: payload.sub,
       gender,
-      avatar,
+      avatar: gender === "male" ? "/avatars/male.png" : "/avatars/female.png",
       role,
       isEmailVerified: true,
     });
