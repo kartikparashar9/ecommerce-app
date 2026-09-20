@@ -385,6 +385,59 @@ const getCategoryById = asyncHandler(async (req, res) => {
 });
 
 // =====================================================
+// GET SUBCATEGORIES
+// =====================================================
+
+const getSubcategories = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // -------------------------------------------------
+  // VALIDATE CATEGORY ID
+  // -------------------------------------------------
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid category ID");
+  }
+
+  // -------------------------------------------------
+  // CHECK PARENT CATEGORY
+  // -------------------------------------------------
+
+  const parentCategory = await Category.findOne({
+    _id: id,
+    isActive: true,
+  }).select("_id name slug");
+
+  if (!parentCategory) {
+    throw new ApiError(404, "Category not found");
+  }
+
+  // -------------------------------------------------
+  // GET ACTIVE SUBCATEGORIES
+  // -------------------------------------------------
+
+  const subcategories = await Category.find({
+    parentCategory: id,
+    isActive: true,
+  })
+    .select("name slug description image parentCategory")
+    .sort({
+      name: 1,
+    })
+    .lean();
+
+  // -------------------------------------------------
+  // RESPONSE
+  // -------------------------------------------------
+
+  return res.status(200).json(
+    new ApiResponse(200, "Subcategories fetched successfully", {
+      subcategories,
+    }),
+  );
+});
+
+// =====================================================
 // UPDATE CATEGORY
 // =====================================================
 
@@ -657,6 +710,7 @@ module.exports = {
   createCategory,
   getCategories,
   getCategoryById,
+  getSubcategories,
   updateCategory,
   deleteCategory,
   toggleCategoryStatus,
