@@ -364,7 +364,11 @@ const resetPassword = asyncHandler(async (req, res) => {
 });
 
 const googleLogin = asyncHandler(async (req, res) => {
-  const { token, gender } = req.body;
+  const { token, gender, role } = req.body;
+
+  if (!["user", "seller"].includes(role)) {
+  throw new ApiError(400, "Invalid account role");
+}
 
   if (!["male", "female"].includes(gender)) {
     throw new ApiError(400, "Gender must be male or female");
@@ -399,6 +403,7 @@ const googleLogin = asyncHandler(async (req, res) => {
       googleId: payload.sub,
       gender,
       avatar,
+      role,
       isEmailVerified: true,
     });
   }
