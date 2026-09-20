@@ -10,6 +10,12 @@ const Product =
 const ApiError =
     require("../utils/ApiError");
 
+const Order =
+    require("../models/orderModel");
+
+const { getVariantPricing, calculateCouponDiscount } =
+    require("../utils/pricing");
+
 // =====================================================
 // HELPERS
 // =====================================================
@@ -541,10 +547,13 @@ const applyCoupon = async (
         const userId =
             req.user._id;
 
-        const normalizedCode =
-            req.body.code
-                .trim()
-                .toUpperCase();
+        const rawCode = req.body?.code;
+
+        if (typeof rawCode !== "string" || !rawCode.trim()) {
+            return next(new ApiError(400, "Coupon code is required"));
+        }
+
+        const normalizedCode = rawCode.trim().toUpperCase();
 
         // ---------------------------------------------
         // FIND COUPON
@@ -607,6 +616,28 @@ const applyCoupon = async (
         }
 
         // ---------------------------------------------
+        // PER-USER USAGE LIMIT
+        // Only successfully paid/confirmed purchases consume a coupon.
+        // ---------------------------------------------
+
+        if (coupon.usageLimitPerUser !== null) {
+            const previousUses = await Order.countDocuments({
+                user: userId,
+                couponCode: normalizedCode,
+                paymentStatus: "paid",
+            });
+
+            if (previousUses >= coupon.usageLimitPerUser) {
+                return next(
+                    new ApiError(
+                        400,
+                        "You have already used this coupon the maximum allowed times"
+                    )
+                );
+            }
+        }
+
+        // ---------------------------------------------
         // GET CART
         // ---------------------------------------------
 
@@ -660,6 +691,8 @@ const applyCoupon = async (
             );
 
         let subtotal = 0;
+        let productDiscount = 0;
+        let sellingSubtotal = 0;
 
         let applicableAmount = 0;
 
@@ -692,10 +725,14 @@ const applyCoupon = async (
                 continue;
             }
 
-            const itemPrice =
-                Number(
-                    variant.price
-                );
+            let pricing;
+            try {
+                pricing = getVariantPricing(product, variant);
+            } catch {
+                continue;
+            }
+
+            const itemPrice = pricing.sellingPrice;
 
             const quantity =
                 Number(
@@ -708,9 +745,33 @@ const applyCoupon = async (
                         quantity
                 );
 
+            const mrpTotal =
+                roundMoney(
+                    pricing.mrp *
+                        quantity
+                );
+
+            const productDiscountTotal =
+                roundMoney(
+                    pricing.productDiscount *
+                        quantity
+                );
+
             subtotal =
                 roundMoney(
                     subtotal +
+                        mrpTotal
+                );
+
+            productDiscount =
+                roundMoney(
+                    productDiscount +
+                        productDiscountTotal
+                );
+
+            sellingSubtotal =
+                roundMoney(
+                    sellingSubtotal +
                         itemTotal
                 );
 
@@ -781,7 +842,7 @@ const applyCoupon = async (
         // ---------------------------------------------
 
         if (
-            subtotal <
+            sellingSubtotal <
             coupon.minimumOrderAmount
         ) {
             return next(
@@ -812,37 +873,10 @@ const applyCoupon = async (
         // CALCULATE DISCOUNT
         // ---------------------------------------------
 
-        let discount = 0;
-
-        if (
-            coupon.discountType ===
-            "percentage"
-        ) {
-            discount =
-                roundMoney(
-                    (
-                        applicableAmount *
-                        coupon.discountValue
-                    ) /
-                        100
-                );
-
-            if (
-                coupon.maximumDiscount !==
-                    null &&
-                discount >
-                    coupon.maximumDiscount
-            ) {
-                discount =
-                    coupon.maximumDiscount;
-            }
-        } else {
-            discount =
-                Math.min(
-                    coupon.discountValue,
-                    applicableAmount
-                );
-        }
+        const discount = calculateCouponDiscount({
+            coupon,
+            applicableAmount,
+        });
 
         // ---------------------------------------------
         // RESPONSE
@@ -866,12 +900,13 @@ const applyCoupon = async (
 
                 subtotal,
 
+                productDiscount,
+
+                sellingSubtotal,
+
                 applicableAmount,
 
-                discount:
-                    roundMoney(
-                        discount
-                    ),
+                discount: roundMoney(discount),
             },
         });
     } catch (error) {

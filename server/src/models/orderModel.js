@@ -93,6 +93,25 @@ const orderItemSchema = new mongoose.Schema(
     // price = 180
     // -------------------------------------------------
 
+    mrp: {
+      type: Number,
+      default: 0,
+      min: [0, "MRP cannot be negative"],
+    },
+
+    productDiscountPercent: {
+      type: Number,
+      default: 0,
+      min: [0, "Product discount percent cannot be negative"],
+      max: [100, "Product discount percent cannot exceed 100"],
+    },
+
+    productDiscount: {
+      type: Number,
+      default: 0,
+      min: [0, "Product discount cannot be negative"],
+    },
+
     price: {
       type: Number,
       required: [true, "Price is required"],
@@ -339,6 +358,11 @@ const orderSchema = new mongoose.Schema(
       trim: true,
       uppercase: true,
       default: "",
+    },
+
+    couponUsageRecorded: {
+      type: Boolean,
+      default: false,
     },
 
     // =================================================

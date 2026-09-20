@@ -6,6 +6,8 @@ const Product = require("../models/productModel");
 const Address = require("../models/addressModel");
 
 const ApiError = require("../utils/ApiError");
+const Coupon = require("../models/couponModel");
+const { getVariantPricing, calculateCouponDiscount } = require("../utils/pricing");
 
 // =====================================================
 // HELPERS
@@ -60,7 +62,7 @@ const createOrder = async (req, res, next) => {
   try {
     const userId = req.user?._id;
 
-    const { addressId, paymentMethod = "cod" } = req.body;
+    const { addressId, paymentMethod = "cod", couponCode = "" } = req.body;
 
     if (!userId) {
       throw new ApiError(401, "Authentication required");
@@ -105,6 +107,7 @@ const createOrder = async (req, res, next) => {
 
     const orderItems = [];
     let subtotal = 0;
+    let productDiscount = 0;
 
     // -------------------------------------------------
     // Validate Cart
@@ -156,11 +159,14 @@ const createOrder = async (req, res, next) => {
         );
       }
 
-      const price = Number(variant.price);
-
-      if (!Number.isFinite(price) || price < 0) {
+      let pricing;
+      try {
+        pricing = getVariantPricing(product, variant);
+      } catch {
         throw new ApiError(400, `Invalid price for ${product.name}`);
       }
+
+      const price = pricing.sellingPrice;
 
       const stock = Number(variant.stock);
 
@@ -176,8 +182,11 @@ const createOrder = async (req, res, next) => {
       }
 
       const itemTotal = roundMoney(price * quantity);
+      const mrpTotal = roundMoney(pricing.mrp * quantity);
+      const itemProductDiscount = roundMoney(pricing.productDiscount * quantity);
 
-      subtotal = roundMoney(subtotal + itemTotal);
+      subtotal = roundMoney(subtotal + mrpTotal);
+      productDiscount = roundMoney(productDiscount + itemProductDiscount);
 
       orderItems.push({
         product: product._id,
@@ -199,6 +208,12 @@ const createOrder = async (req, res, next) => {
 
         image: variant.image || "",
 
+        mrp: pricing.mrp,
+
+        productDiscountPercent: pricing.discountPercent,
+
+        productDiscount: itemProductDiscount,
+
         price,
 
         quantity,
@@ -211,11 +226,87 @@ const createOrder = async (req, res, next) => {
     // Totals
     // -------------------------------------------------
 
-    const shippingFee = subtotal >= 999 ? 0 : 50;
+    const sellingSubtotal = roundMoney(subtotal - productDiscount);
 
-    const discount = 0;
+    let couponDiscount = 0;
+    let normalizedCouponCode = "";
 
-    const totalAmount = roundMoney(subtotal + shippingFee - discount);
+    if (couponCode) {
+      normalizedCouponCode = String(couponCode).trim().toUpperCase();
+
+      const coupon = await Coupon.findOne({
+        code: normalizedCouponCode,
+        isActive: true,
+      }).session(session);
+
+      if (!coupon) {
+        throw new ApiError(404, "Invalid or inactive coupon");
+      }
+
+      const now = new Date();
+      if (now < coupon.startDate || now > coupon.endDate) {
+        throw new ApiError(400, "Coupon is not currently valid");
+      }
+
+      if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
+        throw new ApiError(400, "Coupon usage limit has been reached");
+      }
+
+      if (coupon.usageLimitPerUser !== null) {
+        const previousUses = await Order.countDocuments({
+          user: userId,
+          couponCode: normalizedCouponCode,
+          paymentStatus: "paid",
+        }).session(session);
+
+        if (previousUses >= coupon.usageLimitPerUser) {
+          throw new ApiError(400, "You have already used this coupon the maximum allowed times");
+        }
+      }
+
+      if (sellingSubtotal < Number(coupon.minimumOrderAmount)) {
+        throw new ApiError(400, `Minimum order amount of ${coupon.minimumOrderAmount} is required`);
+      }
+
+      let applicableAmount = 0;
+
+      for (let i = 0; i < cart.items.length; i += 1) {
+        const cartItem = cart.items[i];
+        const orderItem = orderItems[i];
+        const product = await Product.findById(cartItem.product).session(session);
+
+        if (!product) continue;
+
+        const productRestricted = coupon.applicableProducts.length > 0;
+        const categoryRestricted = coupon.applicableCategories.length > 0;
+
+        let applicable = true;
+        if (productRestricted) {
+          applicable = coupon.applicableProducts.some(
+            (id) => id.toString() === product._id.toString(),
+          );
+        }
+        if (applicable && categoryRestricted) {
+          applicable = coupon.applicableCategories.some(
+            (id) => id.toString() === product.category?.toString(),
+          );
+        }
+
+        if (applicable) {
+          applicableAmount = roundMoney(applicableAmount + orderItem.itemTotal);
+        }
+      }
+
+      if (applicableAmount <= 0) {
+        throw new ApiError(400, "Coupon is not applicable to products in your cart");
+      }
+
+      couponDiscount = calculateCouponDiscount({ coupon, applicableAmount });
+    }
+
+    const shippingFee = sellingSubtotal >= 999 ? 0 : 50;
+    const discount = roundMoney(productDiscount + couponDiscount);
+    const totalAmount = roundMoney(sellingSubtotal - couponDiscount + shippingFee);
 
     if (!Number.isFinite(totalAmount) || totalAmount < 0) {
       throw new ApiError(400, "Invalid order total");
@@ -252,9 +343,15 @@ const createOrder = async (req, res, next) => {
 
       subtotal,
 
-      shippingFee,
+      productDiscount,
+
+      couponDiscount,
 
       discount,
+
+      shippingFee,
+
+      couponCode: normalizedCouponCode,
 
       totalAmount,
 

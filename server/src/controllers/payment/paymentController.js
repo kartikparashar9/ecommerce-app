@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const razorpay = require("../../config/razorpay");
 const Payment = require("../../models/paymentModel");
 const Order = require("../../models/orderModel");
+const { recordCouponUsage } = require("../../services/couponUsageService");
 
 const ApiError = require("../../utils/ApiError");
 const ApiResponse = require("../../utils/ApiResponse");
@@ -447,6 +448,8 @@ const verifyRazorpayPayment = asyncHandler(async (req, res, next) => {
 
   await order.save();
 
+  await recordCouponUsage(order);
+
   // -------------------------------------------------
   // RESPONSE
   // -------------------------------------------------
@@ -653,6 +656,8 @@ const completeCODPayment = asyncHandler(async (req, res, next) => {
   }
 
   await order.save();
+
+  await recordCouponUsage(order);
 
   return res.status(200).json(
     new ApiResponse(

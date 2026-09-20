@@ -2,6 +2,7 @@ const crypto = require("crypto");
 
 const Payment = require("../../models/paymentModel");
 const Order = require("../../models/orderModel");
+const { recordCouponUsage } = require("../../services/couponUsageService");
 
 // =====================================================
 // VERIFY WEBHOOK SIGNATURE
@@ -211,6 +212,7 @@ const razorpayWebhook = async (
                 }
 
                 await order.save();
+                await recordCouponUsage(order);
             }
 
             return res.status(200).json({

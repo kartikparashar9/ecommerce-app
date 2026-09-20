@@ -1,6 +1,7 @@
 const Cart = require("../models/cartModel");
 const Product = require("../models/productModel");
 const ApiError = require("../utils/ApiError");
+const { getVariantPricing, roundMoney } = require("../utils/pricing");
 
 // =====================================================
 // HELPERS
@@ -36,7 +37,7 @@ const buildCartResponse = async (cart) => {
             .populate({
                 path: "items.product",
                 select:
-                    "name slug brand category subcategory variants isActive seller",
+                    "name slug brand category subcategory variants isActive seller discount basePrice finalPrice",
             })
             .lean();
 
@@ -77,16 +78,16 @@ const buildCartResponse = async (cart) => {
             continue;
         }
 
-        const price =
-            Number(variant.price) || 0;
+        const pricing = getVariantPricing(product, variant);
+        const price = pricing.sellingPrice;
 
         const quantity =
             Number(item.quantity) || 0;
 
         const itemTotal =
-            price * quantity;
+            roundMoney(price * quantity);
 
-        subtotal += itemTotal;
+        subtotal = roundMoney(subtotal + itemTotal);
         totalItems += quantity;
 
         items.push({
@@ -101,6 +102,9 @@ const buildCartResponse = async (cart) => {
                 subcategory:
                     product.subcategory,
                 seller: product.seller,
+                basePrice: product.basePrice,
+                discount: product.discount,
+                finalPrice: product.finalPrice,
             },
 
             variant: {
@@ -108,7 +112,10 @@ const buildCartResponse = async (cart) => {
                 sku: variant.sku,
                 color: variant.color,
                 size: variant.size,
-                price: variant.price,
+                mrp: pricing.mrp,
+                productDiscountPercent: pricing.discountPercent,
+                productDiscount: pricing.productDiscount,
+                price: pricing.sellingPrice,
                 stock: variant.stock,
                 image: variant.image,
                 isActive: variant.isActive,

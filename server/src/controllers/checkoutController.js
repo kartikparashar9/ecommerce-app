@@ -3,8 +3,11 @@ const mongoose = require("mongoose");
 const Cart = require("../models/cartModel");
 const Product = require("../models/productModel");
 const Address = require("../models/addressModel");
+const Coupon = require("../models/couponModel");
+const Order = require("../models/orderModel");
 
 const ApiError = require("../utils/ApiError");
+const { getVariantPricing, calculateCouponDiscount } = require("../utils/pricing");
 
 // =====================================================
 // HELPERS
@@ -39,7 +42,7 @@ const findVariant = (product, variantId) => {
 // BUILD CHECKOUT
 // =====================================================
 
-const buildCheckout = async (userId, addressId) => {
+const buildCheckout = async (userId, addressId, couponCode = "") => {
   // -------------------------------------------------
   // Authentication
   // -------------------------------------------------
@@ -77,12 +80,48 @@ const buildCheckout = async (userId, addressId) => {
     throw new ApiError(400, "Your cart is empty");
   }
 
+  let coupon = null;
+  const normalizedCouponCode = typeof couponCode === "string"
+    ? couponCode.trim().toUpperCase()
+    : "";
+
+  if (normalizedCouponCode) {
+    coupon = await Coupon.findOne({
+      code: normalizedCouponCode,
+      isActive: true,
+    }).lean();
+
+    if (!coupon) throw new ApiError(404, "Invalid or inactive coupon");
+
+    const now = new Date();
+    if (now < coupon.startDate || now > coupon.endDate) {
+      throw new ApiError(400, "Coupon is not currently valid");
+    }
+
+    if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
+      throw new ApiError(400, "Coupon usage limit has been reached");
+    }
+
+    const previousUses = await Order.countDocuments({
+      user: userId,
+      couponCode: normalizedCouponCode,
+      paymentStatus: "paid",
+    });
+
+    if (coupon.usageLimitPerUser !== null && previousUses >= coupon.usageLimitPerUser) {
+      throw new ApiError(400, "You have already used this coupon the maximum allowed times");
+    }
+  }
+
   // -------------------------------------------------
   // Prepare
   // -------------------------------------------------
 
   const items = [];
   let subtotal = 0;
+  let productDiscount = 0;
+  let sellingSubtotal = 0;
+  let applicableCouponAmount = 0;
 
   // -------------------------------------------------
   // Validate Cart Items
@@ -160,11 +199,14 @@ const buildCheckout = async (userId, addressId) => {
     // Price
     // -------------------------------------------------
 
-    const price = Number(variant.price);
-
-    if (!Number.isFinite(price) || price < 0) {
+    let pricing;
+    try {
+      pricing = getVariantPricing(product, variant);
+    } catch {
       throw new ApiError(400, `Invalid price for ${product.name}`);
     }
+
+    const price = pricing.sellingPrice;
 
     // -------------------------------------------------
     // Stock
@@ -187,13 +229,20 @@ const buildCheckout = async (userId, addressId) => {
     // Item Total
     // -------------------------------------------------
 
+    const mrpTotal = roundMoney(pricing.mrp * quantity);
+    const productDiscountTotal = roundMoney(
+      pricing.productDiscount * quantity,
+    );
     const itemTotal = roundMoney(price * quantity);
+
+    productDiscount = roundMoney(productDiscount + productDiscountTotal);
+    sellingSubtotal = roundMoney(sellingSubtotal + itemTotal);
 
     if (!Number.isFinite(itemTotal)) {
       throw new ApiError(400, `Invalid item total for ${product.name}`);
     }
 
-    subtotal = roundMoney(subtotal + itemTotal);
+    subtotal = roundMoney(subtotal + mrpTotal);
 
     // -------------------------------------------------
     // Checkout Item
@@ -214,6 +263,9 @@ const buildCheckout = async (userId, addressId) => {
         sku: variant.sku,
         color: variant.color || "",
         size: variant.size || "",
+        mrp: pricing.mrp,
+        productDiscountPercent: pricing.discountPercent,
+        productDiscount: productDiscountTotal,
         price,
         stock,
         image: variant.image || "",
@@ -221,6 +273,7 @@ const buildCheckout = async (userId, addressId) => {
 
       quantity,
 
+      mrpTotal,
       itemTotal,
     });
   }
@@ -229,13 +282,21 @@ const buildCheckout = async (userId, addressId) => {
   // Shipping
   // -------------------------------------------------
 
-  const shipping = subtotal >= 999 ? 0 : 50;
+  let couponDiscount = 0;
+  if (coupon) {
+    if (sellingSubtotal < Number(coupon.minimumOrderAmount)) {
+      throw new ApiError(400, `Minimum order amount of ${coupon.minimumOrderAmount} is required`);
+    }
+    if (applicableCouponAmount <= 0) {
+      throw new ApiError(400, "Coupon is not applicable to products in your cart");
+    }
+    couponDiscount = calculateCouponDiscount({
+      coupon,
+      applicableAmount: applicableCouponAmount,
+    });
+  }
 
-  // -------------------------------------------------
-  // Discount
-  // -------------------------------------------------
-
-  const discount = 0;
+  const shipping = sellingSubtotal >= 999 ? 0 : 50;
 
   // -------------------------------------------------
   // Tax
@@ -247,7 +308,7 @@ const buildCheckout = async (userId, addressId) => {
   // Total
   // -------------------------------------------------
 
-  const total = roundMoney(subtotal - discount + shipping + tax);
+  const total = roundMoney(sellingSubtotal - couponDiscount + shipping + tax);
 
   if (!Number.isFinite(total) || total < 0) {
     throw new ApiError(400, "Invalid checkout total");
@@ -274,7 +335,11 @@ const buildCheckout = async (userId, addressId) => {
     items,
 
     subtotal,
-    discount,
+    productDiscount,
+    sellingSubtotal,
+    couponCode: normalizedCouponCode,
+    couponDiscount,
+    discount: productDiscount + couponDiscount,
     shipping,
     tax,
     total,
@@ -293,9 +358,9 @@ const buildCheckout = async (userId, addressId) => {
 const getCheckoutSummary = async (req, res, next) => {
   try {
     const userId = req.user?._id;
-    const { addressId } = req.body;
+    const { addressId, couponCode = "" } = req.body;
 
-    const summary = await buildCheckout(userId, addressId);
+    const summary = await buildCheckout(userId, addressId, couponCode);
 
     return res.status(200).json({
       success: true,
@@ -316,9 +381,9 @@ const validateCheckoutData = async (req, res, next) => {
   try {
     const userId = req.user?._id;
 
-    const { addressId, paymentMethod } = req.body;
+    const { addressId, paymentMethod, couponCode = "" } = req.body;
 
-    const summary = await buildCheckout(userId, addressId);
+    const summary = await buildCheckout(userId, addressId, couponCode);
 
     if (
       paymentMethod !== undefined &&
@@ -341,6 +406,10 @@ const validateCheckoutData = async (req, res, next) => {
         paymentMethod,
 
         subtotal: summary.subtotal,
+        productDiscount: summary.productDiscount,
+        sellingSubtotal: summary.sellingSubtotal,
+        couponCode: summary.couponCode,
+        couponDiscount: summary.couponDiscount,
         discount: summary.discount,
         shipping: summary.shipping,
         tax: summary.tax,
