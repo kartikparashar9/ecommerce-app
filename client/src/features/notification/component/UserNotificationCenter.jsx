@@ -20,7 +20,7 @@ import {
   markAllNotificationsAsRead,
   deleteNotification,
   deleteAllReadNotifications,
-} from "./notificationApi";
+} from "../notificationApi";
 import "./UserNotificationCenter.css";
 
 const emptyForm = { title: "", message: "", channel: "both" };

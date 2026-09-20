@@ -10,14 +10,12 @@ import {
   FaGithub,
 } from "react-icons/fa";
 
-
 const Footer = () => {
   const year = new Date().getFullYear();
 
   return (
     <footer className="footer">
       <div className="footer-container">
-
         {/* ================= LEFT ================= */}
 
         <motion.div
@@ -28,59 +26,39 @@ const Footer = () => {
           viewport={{ once: true }}
         >
           <div className="footer-logo">
-
             {/* <img src={logo} alt="ShopSphere Logo" /> */}
 
             <h2>
               Just<span>Buy</span>
             </h2>
-
           </div>
 
           <p>
-            ShopSphere is your one-stop destination for fashion,
-            electronics, beauty, home essentials, and much more.
-            We deliver premium products with the best shopping
-            experience.
+            ShopSphere is your one-stop destination for fashion, electronics,
+            beauty, home essentials, and much more. We deliver premium products
+            with the best shopping experience.
           </p>
 
           <div className="social-icons">
-
-            <motion.a
-              href="#"
-              whileHover={{ scale: 1.2, rotate: 8 }}
-            >
+            <motion.a href="#" whileHover={{ scale: 1.2, rotate: 8 }}>
               <FaFacebookF />
             </motion.a>
 
-            <motion.a
-              href="#"
-              whileHover={{ scale: 1.2, rotate: -8 }}
-            >
+            <motion.a href="#" whileHover={{ scale: 1.2, rotate: -8 }}>
               <FaInstagram />
             </motion.a>
 
-            <motion.a
-              href="#"
-              whileHover={{ scale: 1.2, rotate: 8 }}
-            >
+            <motion.a href="#" whileHover={{ scale: 1.2, rotate: 8 }}>
               <FaTwitter />
             </motion.a>
 
-            <motion.a
-              href="#"
-              whileHover={{ scale: 1.2, rotate: -8 }}
-            >
+            <motion.a href="#" whileHover={{ scale: 1.2, rotate: -8 }}>
               <FaLinkedinIn />
             </motion.a>
 
-            <motion.a
-              href="#"
-              whileHover={{ scale: 1.2, rotate: 8 }}
-            >
+            <motion.a href="#" whileHover={{ scale: 1.2, rotate: 8 }}>
               <FaGithub />
             </motion.a>
-
           </div>
         </motion.div>
 
@@ -96,13 +74,22 @@ const Footer = () => {
           <h3>Quick Links</h3>
 
           <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/shop">Shop</a></li>
-            <li><a href="/offers">Offers</a></li>
-            <li><a href="/about">About Us</a></li>
-            <li><a href="/contact">Contact</a></li>
+            <li>
+              <a href="/">Home</a>
+            </li>
+            <li>
+              <a href="/">Shop</a>
+            </li>
+            <li>
+              <a href="/">Offers</a>
+            </li>
+            <li>
+              <a href="/">About Us</a>
+            </li>
+            <li>
+              <a href="/">Contact</a>
+            </li>
           </ul>
-
         </motion.div>
 
         {/* ================= CATEGORIES ================= */}
@@ -117,13 +104,22 @@ const Footer = () => {
           <h3>Categories</h3>
 
           <ul>
-            <li><a href="/clothes">Fashion</a></li>
-            <li><a href="/accesories">Accesories</a></li>
-            <li><a href="/beauty">Beauty</a></li>
-            <li><a href="/electronics">Electronics</a></li>
-            <li><a href="/">Home</a></li>
+            <li>
+              <a href="/fashion">Fashion</a>
+            </li>
+            <li>
+              <a href="/accessories">Accessories</a>
+            </li>
+            <li>
+              <a href="/beauty">Beauty</a>
+            </li>
+            <li>
+              <a href="/electronics">Electronics</a>
+            </li>
+            <li>
+              <a href="/">Home</a>
+            </li>
           </ul>
-
         </motion.div>
 
         {/* ================= CONTACT ================= */}
@@ -143,9 +139,7 @@ const Footer = () => {
             <li>Address: Indore, Madhya Pradesh, India</li>
             <li>Mon - Sat : 9 AM - 8 PM</li>
           </ul>
-
         </motion.div>
-
       </div>
 
       {/* ================= COPYRIGHT ================= */}

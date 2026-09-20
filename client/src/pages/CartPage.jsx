@@ -1,9 +1,5 @@
-import React from 'react'
+import CartPageContent from "../features/cart/component/CartPage";
 
-const CartPage = () => {
-  return (
-    <div>CartPage</div>
-  )
+export default function CartPage() {
+  return <CartPageContent />;
 }
-
-export default CartPage

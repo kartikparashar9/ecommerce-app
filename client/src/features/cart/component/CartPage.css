@@ -1,0 +1,11 @@
+.cart-page { min-width: 0; }
+@media (max-width: 900px) {
+  .cart-layout { grid-template-columns: 1fr; }
+  .cart-summary { position: static; }
+}
+@media (max-width: 600px) {
+  .cart-page { width: min(100% - 24px, 1180px); padding-top: 24px; }
+  .cart-item { padding: 12px; gap: 12px; }
+  .cart-item__image { width: 82px; height: 82px; flex-basis: 82px; }
+  .cart-item__controls { align-items: flex-start; flex-direction: column; }
+}

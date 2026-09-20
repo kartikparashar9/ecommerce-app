@@ -1,10 +1,5 @@
-import React from "react";
+import CategoryPage from "../features/categories/component/Categories";
 
-import CategoryPage from "../features/categories/Component/Categories";
-import { categoryPages } from "../features/categories/CategoriesData";
-
-function Fashion() {
-    return <CategoryPage data={categoryPages.fashion} />;
+export default function FashionPage() {
+  return <CategoryPage data={{ title: "fashion" }} />;
 }
-
-export default Fashion;

@@ -1,5 +1,19 @@
 import API from "../../api/Api";
-const data = (r) => r?.data;
-export const getCheckoutSummaryApi = async (payload = {}) => data(await API.post("/checkout/summary", payload));
-export const validateCheckoutApi = async (payload = {}) => data(await API.post("/checkout/validate", payload));
+import { unwrapApiResponse } from "../utils/apiResponse";
+
+const data = unwrapApiResponse;
+
+const validatePayload = (payload) => {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("Valid checkout data is required");
+  }
+  return payload;
+};
+
+export const getCheckoutSummaryApi = async (payload = {}) =>
+  data(await API.post("/checkout/summary", validatePayload(payload)));
+
+export const validateCheckoutApi = async (payload = {}) =>
+  data(await API.post("/checkout/validate", validatePayload(payload)));
+
 export default API;

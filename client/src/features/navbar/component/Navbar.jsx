@@ -1,241 +1,461 @@
-import React, { useState, useRef, useEffect } from "react";
-import "./Navbar.css";
-import Logout from "../../auth/component/Logout";
-import { profileApi } from "../../profile/profileApi";
+import React, { useEffect, useRef, useState } from "react";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { useDispatch, useSelector } from "react-redux";
+
+import { AnimatePresence, motion } from "framer-motion";
+
 import { Link, useNavigate } from "react-router-dom";
 
 import {
-  FiSearch,
   FiHeart,
+  FiMenu,
+  FiSearch,
   FiShoppingCart,
-  FiSun,
-  FiMoon,
-  FiChevronDown,
   FiUser,
-  FiLock,
-  FiLogOut,
+  FiX,
+  FiChevronDown,
+  FiPackage,
+  FiMapPin,
 } from "react-icons/fi";
 
-import maleAvatar from "../../../assets/images/male-avatar.jpg";
+import Logout from "../../auth/component/Logout";
+import { profileApi } from "../../profile/profileApi";
+import { fetchCart } from "../../cart/CartSlice";
+import { fetchWishlist } from "../../wishlist/WishlistSlice";
+import { resolveMediaUrl, getInitial } from "../../utils/media";
+import "./Navbar.css";
 
-import { NavLinks } from "./Navlinks";
+// =====================================================
+// NAVIGATION
+// =====================================================
+
+const NAV_ITEMS = [
+  {
+    label: "Home",
+    to: "/",
+  },
+  {
+    label: "Fashion",
+    to: "/fashion",
+  },
+  {
+    label: "Accessories",
+    to: "/accessories",
+  },
+  {
+    label: "Beauty",
+    to: "/beauty",
+  },
+  {
+    label: "Electronics",
+    to: "/electronics",
+  },
+];
+
+// =====================================================
+// COMPONENT
+// =====================================================
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [search, setSearch] = useState("");
-  const [showDropdown, setShowDropdown] = useState(false);
+  const dispatch = useDispatch();
   const dropdownRef = useRef(null);
+  const [search, setSearch] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [user, setUser] = useState(null);
 
-  // Change this after login integration
-  const [user, setUser] = useState({
-    name: "",
-    email: "",
-    avatar: "",
-  });
+  const isAuthenticated = Boolean(
+    useSelector((state) => state.auth?.isAuthenticated),
+  );
 
-  // ================= FETCH LOGGED-IN USER =================
+  const cartItems = useSelector((state) => state.cart?.items || []);
+  const wishlistItems = useSelector((state) => state.wishlist?.items || []);
+
+  // ===================================================
+  // PROFILE
+  // ===================================================
+
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    if (!isAuthenticated) {
+      setUser(null);
+      return undefined;
+    }
+
+    let active = true;
+
+    const loadProfile = async () => {
       try {
         const response = await profileApi();
 
-        const userData = response?.message;
+        const data = response?.message?.name
+          ? response.message
+          : response?.data?.name
+            ? response.data
+            : response?.message || response?.data || {};
 
-        const API_URL = import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "");
-
-        setUser({
-          name: userData?.name || "",
-          email: userData?.email || "",
-          avatar: userData?.avatar ? `${API_URL}${userData.avatar}` : "",
-        });
-      } catch (error) {
-        console.error(
-          "Failed to fetch user profile:",
-          error.response?.data || error.message,
-        );
-
-        setUser({
-          name: "",
-          email: "",
-          avatar: "",
-        });
+        if (active) {
+          setUser(data);
+        }
+      } catch {
+        if (active) {
+          setUser(null);
+        }
       }
     };
 
-    fetchUserProfile();
-  }, []);
+    loadProfile();
 
-  // Dark Mode....
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated]);
+
+  // ===================================================
+  // CART / WISHLIST
+  // ===================================================
+
   useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add("dark-theme");
-    } else {
-      document.body.classList.remove("dark-theme");
+    if (!isAuthenticated) {
+      return;
     }
-  }, [darkMode]);
 
-  // Scrollbar....
+    dispatch(fetchCart());
+    dispatch(fetchWishlist());
+  }, [dispatch, isAuthenticated]);
+
+  // ===================================================
+  // SCROLL
+  // ===================================================
+
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 12);
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", onScroll, {
+      passive: true,
+    });
 
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Dropdown....
+  // ===================================================
+  // OUTSIDE CLICK
+  // ===================================================
+
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const onOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", onOutside);
 
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
   }, []);
+
+  // ===================================================
+  // MOBILE MENU
+  // ===================================================
+
+  useEffect(() => {
+    document.body.classList.toggle("navbar-menu-open", menuOpen);
+
+    return () => document.body.classList.remove("navbar-menu-open");
+  }, [menuOpen]);
+
+  // ===================================================
+  // SEARCH
+  // ===================================================
+
+  const submitSearch = (event) => {
+    event.preventDefault();
+
+    const value = search.trim();
+
+    if (!value) {
+      return;
+    }
+
+    setMenuOpen(false);
+
+    navigate(`/search?q=${encodeURIComponent(value)}`);
+  };
+
+  // ===================================================
+  // COUNTS
+  // ===================================================
+
+  const cartCount = cartItems.reduce(
+    (total, item) => total + (Number(item?.quantity) || 0),
+    0,
+  );
+
+  const wishlistCount = wishlistItems.length;
+
+  // ===================================================
+  // USER
+  // ===================================================
+
+  const userName = user?.name || "Account";
+
+  const avatar = resolveMediaUrl(user?.avatar);
+
+  // ===================================================
+  // CLOSE MENUS
+  // ===================================================
+
+  const closeMenus = () => {
+    setMenuOpen(false);
+    setShowDropdown(false);
+  };
+
+  // ===================================================
+  // RENDER
+  // ===================================================
 
   return (
     <motion.nav
       className={`navbar ${scrolled ? "navbar-shadow" : ""}`}
-      initial={{ y: -70 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.6 }}
+      initial={{
+        y: -60,
+      }}
+      animate={{
+        y: 0,
+      }}
+      transition={{
+        duration: 0.35,
+      }}
     >
-      {/* ================= LEFT ================= */}
+      <div className="navbar-inner">
+        {/* BRAND */}
 
-      <motion.div className="navbar-left" whileHover={{ scale: 1.05 }}>
-        {/* <img
-          src={logo}
-          alt="logo"
-          className="navbar-logo"
-        /> */}
+        <Link to="/" className="navbar-brand" onClick={closeMenus}>
+          Just<span>Buy</span>
+        </Link>
 
-        <h2 className="logo-title">
-          <a href="/">
-            Just<span>Buy</span>
-          </a>
-        </h2>
-      </motion.div>
+        {/* DESKTOP NAV */}
 
-      {/* ================= CENTER ================= */}
-
-      <div className="navbar-center">
-        <ul className="nav-links">
-          {NavLinks.map((item) => (
-            <motion.li
-              key={item.id}
-              whileHover={{
-                y: -4,
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 300,
-              }}
-            >
-              <a href={item.link}>{item.title}</a>
-            </motion.li>
+        <div className="navbar-desktop-links" aria-label="Primary navigation">
+          {NAV_ITEMS.map((item) => (
+            <Link key={item.to} to={item.to} onClick={closeMenus}>
+              {item.label}
+            </Link>
           ))}
-        </ul>
-      </div>
+        </div>
 
-      {/* ================= RIGHT ================= */}
+        {/* SEARCH */}
 
-      <div className="navbar-right">
-        {/* Search */}
+        <form className="navbar-search" onSubmit={submitSearch}>
+          <FiSearch aria-hidden="true" />
 
-        <form className="search-box" onSubmit={(event) => { event.preventDefault(); const value = search.trim(); if (value) navigate(`/search?q=${encodeURIComponent(value)}`); }}>
-          <FiSearch className="search-icon" />
-          <input type="search" placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search products" />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search products..."
+            aria-label="Search products"
+          />
         </form>
 
-        {/* Theme */}
+        {/* ACTIONS */}
 
-        <motion.button
-          whileTap={{ scale: 0.8 }}
-          whileHover={{ rotate: 180 }}
-          className="icon-btn"
-          onClick={() => setDarkMode(!darkMode)}
-        >
-          {darkMode ? <FiSun /> : <FiMoon />}
-        </motion.button>
+        <div className="navbar-actions">
+          {/* WISHLIST */}
 
-        {/* Wishlist */}
+          {isAuthenticated && (
+            <Link
+              to="/wishlist"
+              className="navbar-icon"
+              aria-label={`Wishlist${
+                wishlistCount ? `, ${wishlistCount} items` : ""
+              }`}
+            >
+              <FiHeart />
 
-        <motion.div whileHover={{ scale: 1.15 }}>
-          <Link to="/wishlist" className="icon-wrapper">
-            <FiHeart />
-            <span className="badge">2</span>
-          </Link>
-        </motion.div>
+              {wishlistCount > 0 && (
+                <span className="navbar-badge">
+                  {wishlistCount > 99 ? "99+" : wishlistCount}
+                </span>
+              )}
+            </Link>
+          )}
 
-        {/* Cart */}
+          {/* CART */}
 
-        <motion.div whileHover={{ scale: 1.15 }}>
-          <Link to="/cart" className="icon-wrapper">
-            <FiShoppingCart />
-            <span className="badge">3</span>
-          </Link>
-        </motion.div>
+          {isAuthenticated && (
+            <Link
+              to="/cart"
+              className="navbar-icon"
+              aria-label={`Cart${cartCount ? `, ${cartCount} items` : ""}`}
+            >
+              <FiShoppingCart />
 
-        {/* User */}
+              {cartCount > 0 && (
+                <span className="navbar-badge">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </Link>
+          )}
 
-        <div className="profile-wrapper" ref={dropdownRef}>
-          <motion.div
-            className="profile-box"
-            whileHover={{ scale: 1.05 }}
-            onClick={() => setShowDropdown(!showDropdown)}
+          {/* ACCOUNT */}
+
+          <div className="navbar-account" ref={dropdownRef}>
+            <button
+              type="button"
+              className="navbar-account-button"
+              onClick={() => setShowDropdown((value) => !value)}
+              aria-expanded={showDropdown}
+              aria-label="Account menu"
+            >
+              {avatar ? (
+                <img src={avatar} alt="" />
+              ) : (
+                <span className="navbar-avatar-fallback">
+                  {getInitial(userName)}
+                </span>
+              )}
+
+              <span>{userName}</span>
+
+              <FiChevronDown />
+            </button>
+
+            <AnimatePresence>
+              {showDropdown && (
+                <motion.div
+                  className="navbar-dropdown"
+                  initial={{
+                    opacity: 0,
+                    y: -6,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  exit={{
+                    opacity: 0,
+                    y: -6,
+                  }}
+                >
+                  {isAuthenticated ? (
+                    <>
+                      <div className="navbar-dropdown__user">
+                        <strong>{userName}</strong>
+
+                        <small>{user?.email || ""}</small>
+                      </div>
+
+                      {/* PROFILE */}
+
+                      <Link to="/profile" onClick={closeMenus}>
+                        <FiUser />
+                        Profile
+                      </Link>
+
+                      {/* MY ORDERS */}
+
+                      <Link to="/orders" onClick={closeMenus}>
+                        <FiPackage />
+                        My Orders
+                      </Link>
+
+                      {/* TRACK ORDERS */}
+
+                      <Link to="/orders" onClick={closeMenus}>
+                        <FiMapPin />
+                        Track Orders
+                      </Link>
+
+                      {/* LOGOUT */}
+
+                      <Logout />
+                    </>
+                  ) : (
+                    <Link to="/login" onClick={closeMenus}>
+                      <FiUser />
+                      Login
+                    </Link>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* MOBILE */}
+
+          <button
+            type="button"
+            className="navbar-menu-button"
+            onClick={() => setMenuOpen((value) => !value)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
           >
-            <img src={user.avatar} alt="avatar" className="avatar" />
-
-            <span className="username">{user.name}</span>
-
-            <FiChevronDown />
-          </motion.div>
-
-          <AnimatePresence>
-            {showDropdown && (
-              <motion.div
-                className="profile-dropdown"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <div className="dropdown-header">
-                  <img
-                    src={user.avatar}
-                    className="dropdown-avatar"
-                    alt="avatar"
-                  />
-
-                  <h4>{user.name}</h4>
-
-                  <p>{user.email}</p>
-                </div>
-
-                <Link to="/profile" className="dropdown-item">
-                  <FiUser />
-                  Edit Profile
-                </Link>
-
-                <Link to="/reset-password" className="dropdown-item">
-                  <FiLock />
-                  Reset Password
-                </Link>
-
-                <Logout />
-              </motion.div>
-            )}
-          </AnimatePresence>
+            {menuOpen ? <FiX /> : <FiMenu />}
+          </button>
         </div>
       </div>
+
+      {/* MOBILE PANEL */}
+
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            className="navbar-mobile-panel"
+            initial={{
+              opacity: 0,
+              height: 0,
+            }}
+            animate={{
+              opacity: 1,
+              height: "auto",
+            }}
+            exit={{
+              opacity: 0,
+              height: 0,
+            }}
+          >
+            <form className="navbar-mobile-search" onSubmit={submitSearch}>
+              <FiSearch />
+
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search products..."
+                aria-label="Mobile product search"
+              />
+            </form>
+
+            <nav
+              className="navbar-mobile-links"
+              aria-label="Mobile primary navigation"
+            >
+              {NAV_ITEMS.map((item) => (
+                <Link key={item.to} to={item.to} onClick={closeMenus}>
+                  {item.label}
+                </Link>
+              ))}
+
+              {isAuthenticated && (
+                <>
+                  <Link to="/orders" onClick={closeMenus}>
+                    My Orders
+                  </Link>
+
+                  <Link to="/orders" onClick={closeMenus}>
+                    Track Orders
+                  </Link>
+                </>
+              )}
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
 };

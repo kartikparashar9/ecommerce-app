@@ -1,4 +1,5 @@
 import API from "../../api/Api";
+import { isObjectId } from "../utils/validation";
 
 // =====================================================
 // RESPONSE NORMALIZER
@@ -123,7 +124,7 @@ export const getProductBySlugApi = async (slug) => {
 // =====================================================
 
 export const getProductByIdApi = async (productId) => {
-  if (!productId) {
+  if (!isObjectId(String(productId || ""))) {
     throw new Error("Product ID is required");
   }
 
@@ -145,7 +146,7 @@ export const getProductByIdApi = async (productId) => {
 // =====================================================
 
 export const getProductReviewsApi = async (productId) => {
-  if (!productId) {
+  if (!isObjectId(String(productId || ""))) {
     throw new Error("Product ID is required");
   }
 

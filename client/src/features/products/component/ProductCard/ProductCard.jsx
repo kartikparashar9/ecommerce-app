@@ -1,59 +1,36 @@
 import React, { useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { Heart, ShoppingCart, Star, Check } from "lucide-react";
+import {
+  Check,
+  Heart,
+  ShoppingCart,
+  Star,
+} from "lucide-react";
 
 import { addToCart } from "../../../cart/CartSlice";
 import {
   addToWishlist,
   removeFromWishlist,
 } from "../../../wishlist/WishlistSlice";
-
+import { resolveMediaUrl } from "../../../utils/media";
 import "./ProductCard.css";
 
-// =====================================================
-// HELPERS
-// =====================================================
-
-const getWishlistProductId = (item) => {
-  return (
-    item?._id ||
-    item?.product?._id ||
-    item?.product?.id ||
-    item?.productId ||
-    item?.id ||
-    null
-  );
-};
-
-const getProductId = (product) => {
-  return product?._id || product?.id || null;
-};
-
-const getProductSlug = (product) => {
-  return typeof product?.slug === "string" && product.slug.trim()
-    ? product.slug.trim()
-    : "";
-};
+const getId = (value) =>
+  value?._id || value?.id || value?.productId || value?.product?._id || null;
 
 const getAvailableVariant = (variants) => {
-  if (!Array.isArray(variants) || variants.length === 0) {
-    return null;
-  }
+  if (!Array.isArray(variants) || !variants.length) return null;
 
   return (
     variants.find(
       (variant) =>
-        variant && variant.isActive !== false && Number(variant.stock) > 0,
-    ) ||
-    variants.find((variant) => variant && variant.isActive !== false) ||
-    null
+        variant &&
+        variant.isActive !== false &&
+        Number(variant.stock) > 0,
+    ) || null
   );
 };
-
-// =====================================================
-// COMPONENT
-// =====================================================
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
@@ -64,114 +41,135 @@ const ProductCard = ({ product }) => {
   const [message, setMessage] = useState("");
 
   const wishlistItems = useSelector((state) => state.wishlist?.items || []);
+  const cartItems = useSelector((state) => state.cart?.items || []);
+  const isAuthenticated = Boolean(
+    useSelector((state) => state.auth?.isAuthenticated),
+  );
 
-  // =====================================================
-  // PRODUCT DATA
-  // =====================================================
+  const productId = getId(product);
+  const slug =
+    typeof product?.slug === "string" ? product.slug.trim() : "";
 
-  const productId = getProductId(product);
-  const slug = getProductSlug(product);
+  const name = product?.name || "Product";
+  const description =
+    product?.shortDescription || product?.description || "";
 
-  const {
-    name = "Product",
-    shortDescription = "",
-    categoryName = "",
-    image = "",
-    price = 0,
-    oldPrice = 0,
-    discount = 0,
-    rating = 0,
-    ratingCount = 0,
-    stock = 0,
-    variants = [],
-  } = product || {};
+  const categoryName =
+    product?.categoryName ||
+    product?.category?.name ||
+    product?.category ||
+    "";
 
-  // =====================================================
-  // VARIANT
-  // =====================================================
+  const image = resolveMediaUrl(
+    product?.image ||
+      product?.images?.[0] ||
+      product?.thumbnail,
+  );
 
+
+  const rating = Math.min(
+    Math.max(
+      Number(product?.averageRating ?? product?.rating ?? 0) || 0,
+      0,
+    ),
+    5,
+  );
+
+  const ratingCount = Math.max(
+    Number(product?.totalReviews ?? product?.ratingCount ?? 0) || 0,
+    0,
+  );
+
+  const variants = Array.isArray(product?.variants) ? product.variants : [];
   const firstAvailableVariant = useMemo(
     () => getAvailableVariant(variants),
     [variants],
   );
 
-  // =====================================================
-  // STOCK
-  // =====================================================
+  const oldPrice = Number(
+    firstAvailableVariant?.price ??
+      product?.basePrice ??
+      product?.mrp ??
+      product?.oldPrice ??
+      product?.originalPrice ??
+      0,
+  );
 
-  const productStock = Number(stock);
+  const discount = Math.min(Math.max(Number(product?.discount ?? 0) || 0, 0), 100);
+  const price = Math.max(0, Math.round((oldPrice - (oldPrice * discount) / 100) * 100) / 100);
 
-  const availableStock = Number.isFinite(productStock)
-    ? Math.max(0, productStock)
-    : 0;
+  const stock = Math.max(
+    Number(
+      firstAvailableVariant?.stock ??
+        product?.totalStock ??
+        product?.stock ??
+        product?.quantity ??
+        0,
+    ) || 0,
+    0,
+  );
 
-  const hasVariants = Array.isArray(variants) && variants.length > 0;
+  const isOutOfStock = stock <= 0;
 
-  const variantStock = Number(firstAvailableVariant?.stock);
+  const wishlisted = useMemo(
+    () =>
+      Boolean(productId) &&
+      wishlistItems.some(
+        (item) => String(getId(item)) === String(productId),
+      ),
+    [wishlistItems, productId],
+  );
 
-  const isOutOfStock = hasVariants
-    ? !firstAvailableVariant ||
-      !Number.isFinite(variantStock) ||
-      variantStock <= 0
-    : availableStock <= 0;
-
-  // =====================================================
-  // WISHLIST STATUS
-  // =====================================================
-
-  const wishlisted = useMemo(() => {
-    if (!productId || !Array.isArray(wishlistItems)) {
-      return false;
-    }
-
-    return wishlistItems.some(
-      (item) => String(getWishlistProductId(item)) === String(productId),
-    );
-  }, [wishlistItems, productId]);
-
-  // =====================================================
-  // MESSAGE
-  // =====================================================
+  const inCart = useMemo(
+    () =>
+      Boolean(productId) &&
+      cartItems.some(
+        (item) =>
+          String(
+            item?.product?._id ||
+              item?.product?.id ||
+              item?.productId,
+          ) === String(productId),
+      ),
+    [cartItems, productId],
+  );
 
   const showMessage = (text) => {
     setMessage(text);
-
-    window.setTimeout(() => {
-      setMessage("");
-    }, 1600);
+    window.setTimeout(() => setMessage(""), 1800);
   };
 
-  // =====================================================
-  // OPEN PRODUCT
-  // =====================================================
+  const requireAuth = () => {
+    if (isAuthenticated) return true;
+
+    navigate("/login", {
+      state: { from: window.location.pathname },
+    });
+
+    return false;
+  };
 
   const openProduct = () => {
-    if (!slug) {
-      return;
-    }
-
-    navigate(`/product/${encodeURIComponent(slug)}`);
+    if (slug) navigate(`/product/${encodeURIComponent(slug)}`);
   };
 
-  // =====================================================
-  // KEYBOARD NAVIGATION
-  // =====================================================
-
   const handleCardKeyDown = (event) => {
-    if (event.key === "Enter" || event.key === " ") {
+    if ((event.key === "Enter" || event.key === " ") && slug) {
       event.preventDefault();
       openProduct();
     }
   };
 
-  // =====================================================
-  // ADD TO CART
-  // =====================================================
-
   const handleCart = async (event) => {
     event.stopPropagation();
 
-    if (isOutOfStock || !productId || cartBusy) {
+    if (
+      !productId ||
+      isOutOfStock ||
+      inCart ||
+      cartBusy ||
+      !requireAuth()
+    ) {
       return;
     }
 
@@ -181,10 +179,11 @@ const ProductCard = ({ product }) => {
       await dispatch(
         addToCart({
           productId: String(productId),
-          variantId: firstAvailableVariant?._id
-            ? String(firstAvailableVariant._id)
-            : null,
+          product,
           quantity: 1,
+          ...(firstAvailableVariant?._id
+            ? { variantId: String(firstAvailableVariant._id) }
+            : {}),
         }),
       ).unwrap();
 
@@ -200,27 +199,26 @@ const ProductCard = ({ product }) => {
     }
   };
 
-  // =====================================================
-  // WISHLIST
-  // =====================================================
-
   const handleWishlist = async (event) => {
     event.stopPropagation();
 
-    if (!productId || wishlistBusy) {
-      return;
-    }
+    if (!productId || wishlistBusy || !requireAuth()) return;
 
     setWishlistBusy(true);
 
     try {
       if (wishlisted) {
-        await dispatch(removeFromWishlist(String(productId))).unwrap();
-
+        await dispatch(
+          removeFromWishlist(String(productId)),
+        ).unwrap();
         showMessage("Removed from wishlist");
       } else {
-        await dispatch(addToWishlist(String(productId))).unwrap();
-
+        await dispatch(
+          addToWishlist({
+            productId: String(productId),
+            product,
+          }),
+        ).unwrap();
         showMessage("Added to wishlist");
       }
     } catch (error) {
@@ -234,60 +232,28 @@ const ProductCard = ({ product }) => {
     }
   };
 
-  // =====================================================
-  // INVALID PRODUCT
-  // =====================================================
-
-  if (!product) {
-    return null;
-  }
-
-  // =====================================================
-  // SAFE DISPLAY VALUES
-  // =====================================================
-
-  const numericPrice = Number.isFinite(Number(price)) ? Number(price) : 0;
-
-  const numericOldPrice = Number.isFinite(Number(oldPrice))
-    ? Number(oldPrice)
-    : 0;
-
-  const numericDiscount = Number.isFinite(Number(discount))
-    ? Math.max(0, Number(discount))
-    : 0;
-
-  const numericRating = Number.isFinite(Number(rating))
-    ? Math.min(Math.max(Number(rating), 0), 5)
-    : 0;
-
-  const numericRatingCount = Number.isFinite(Number(ratingCount))
-    ? Math.max(0, Number(ratingCount))
-    : 0;
-
-  // =====================================================
-  // RENDER
-  // =====================================================
+  if (!product) return null;
 
   return (
     <article
       className="product-card"
       onClick={openProduct}
-      role="link"
+      role={slug ? "link" : undefined}
       tabIndex={slug ? 0 : -1}
       onKeyDown={handleCardKeyDown}
     >
-      {/* =================================================
-          IMAGE
-          ================================================= */}
-
       <div className="product-card__image-wrapper">
-        {numericDiscount > 0 && (
-          <span className="product-card__discount">{numericDiscount}% OFF</span>
+        {discount > 0 && (
+          <span className="product-card__discount">
+            {discount}% OFF
+          </span>
         )}
 
-        {/* =================================================
-            WISHLIST
-            ================================================= */}
+        {inCart && (
+          <span className="product-card__cart-mark">
+            <Check size={12} /> In Cart
+          </span>
+        )}
 
         <button
           type="button"
@@ -296,17 +262,20 @@ const ProductCard = ({ product }) => {
           }`}
           onClick={handleWishlist}
           disabled={wishlistBusy}
-          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          aria-label={
+            wishlisted
+              ? `Remove ${name} from wishlist`
+              : `Add ${name} to wishlist`
+          }
           aria-pressed={wishlisted}
         >
-          <Heart size={18} fill={wishlisted ? "currentColor" : "none"} />
+          <Heart
+            size={18}
+            fill={wishlisted ? "currentColor" : "none"}
+          />
         </button>
 
-        {/* =================================================
-            PRODUCT IMAGE
-            ================================================= */}
-
-        {typeof image === "string" && image.trim() ? (
+        {image ? (
           <img
             src={image}
             alt={name}
@@ -315,85 +284,85 @@ const ProductCard = ({ product }) => {
             decoding="async"
           />
         ) : (
-          <div className="product-card__image-placeholder">No image</div>
+          <div className="product-card__image-placeholder">
+            No image
+          </div>
         )}
-
-        {/* =================================================
-            CART
-            ================================================= */}
 
         <button
           type="button"
-          className="product-card__cart"
+          className={`product-card__cart ${
+            inCart ? "product-card__cart--added" : ""
+          }`}
           onClick={handleCart}
-          disabled={isOutOfStock || cartBusy}
+          disabled={isOutOfStock || inCart || cartBusy}
         >
           {isOutOfStock ? (
             "Out of Stock"
+          ) : inCart ? (
+            <>
+              <Check size={16} /> In Cart
+            </>
           ) : cartBusy ? (
             "Please wait..."
           ) : (
             <>
-              <ShoppingCart size={16} />
-              Add to Cart
+              <ShoppingCart size={16} /> Add to Cart
             </>
           )}
         </button>
       </div>
 
-      {/* =================================================
-          CONTENT
-          ================================================= */}
-
       <div className="product-card__content">
         {categoryName && (
-          <span className="product-card__category">{categoryName}</span>
+          <span className="product-card__category">
+            {categoryName}
+          </span>
         )}
 
         <h3 className="product-card__name">{name}</h3>
 
-        {shortDescription && (
-          <p className="product-card__description">{shortDescription}</p>
+        {description && (
+          <p className="product-card__description">
+            {description}
+          </p>
         )}
 
-        {/* =================================================
-            RATING
-            ================================================= */}
-
-        <div className="product-card__rating">
+        <div
+          className="product-card__rating"
+          aria-label={`${rating.toFixed(
+            1,
+          )} out of 5 from ${ratingCount} reviews`}
+        >
           <span className="product-card__stars">
-            <Star size={14} fill="currentColor" />
-
-            {numericRating.toFixed(1)}
+            <Star size={14} fill="currentColor" />{" "}
+            {rating.toFixed(1)}
           </span>
-
           <span className="product-card__rating-count">
-            ({numericRatingCount})
+            ({ratingCount})
           </span>
         </div>
-
-        {/* =================================================
-            PRICE
-            ================================================= */}
 
         <div className="product-card__price">
-          <strong>₹{numericPrice.toLocaleString("en-IN")}</strong>
+          <strong>
+            ₹{price.toLocaleString("en-IN")}
+          </strong>
 
-          {numericOldPrice > numericPrice && (
-            <del>₹{numericOldPrice.toLocaleString("en-IN")}</del>
+          {oldPrice > price && (
+            <del>
+              MRP ₹{oldPrice.toLocaleString("en-IN")}
+            </del>
           )}
 
-          {numericDiscount > 0 && <span>{numericDiscount}% off</span>}
+          {discount > 0 && <span>{discount}% off</span>}
         </div>
 
-        {/* =================================================
-            ACTION MESSAGE
-            ================================================= */}
-
         {message && (
-          <span className="product-card__message">
-            <Check size={13} />
-            {message}
+          <span
+            className="product-card__message"
+            role="status"
+          >
+            <Check size={13} /> {message}
           </span>
         )}
       </div>

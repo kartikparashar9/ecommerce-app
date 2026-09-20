@@ -1,12 +1,5 @@
-import React from 'react'
-import Home from "../features/home/Home";
+import Home from "../features/home/component/Home";
 
-const HomePage = () => {
-  return (
-    <div>
-        <Home />
-    </div>
-  )
+export default function HomePage() {
+  return <Home />;
 }
-
-export default HomePage

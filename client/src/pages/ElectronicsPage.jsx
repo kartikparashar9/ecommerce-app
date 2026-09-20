@@ -1,14 +1,5 @@
-import React from "react";
+import CategoryPage from "../features/categories/component/Categories";
 
-import CategoryPage from "../features/categories/Component/Categories";
-import { categoryPages } from "../features/categories/CategoriesData";
-
-function Electronics() {
-    return (
-        <CategoryPage
-            data={categoryPages.electronics}
-        />
-    );
+export default function ElectronicsPage() {
+  return <CategoryPage data={{ title: "electronics" }} />;
 }
-
-export default Electronics;

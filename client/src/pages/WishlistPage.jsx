@@ -1,9 +1,5 @@
-import React from 'react'
+import WishlistPageContent from "../features/wishlist/component/Wishlist";
 
-const WishlistPage = () => {
-  return (
-    <div>WishlistPage</div>
-  )
+export default function WishlistPage() {
+  return <WishlistPageContent />;
 }
-
-export default WishlistPage

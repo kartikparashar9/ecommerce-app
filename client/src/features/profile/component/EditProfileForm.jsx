@@ -214,8 +214,7 @@ const EditProfileForm = () => {
           name: userData.name.trim(),
         });
 
-        console.log("Profile update response:", response);
-
+  
         /*
           Backend response:
 
@@ -276,8 +275,7 @@ const EditProfileForm = () => {
 
         const response = await changeEmailApi(newEmail);
 
-        console.log("Change email response:", response);
-
+  
         /*
           Email Redux mein abhi update nahi hoga.
 

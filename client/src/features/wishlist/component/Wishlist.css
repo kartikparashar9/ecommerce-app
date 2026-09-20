@@ -1,0 +1,10 @@
+.wishlist-page { min-width: 0; }
+@media (max-width: 900px) {
+  .wishlist-page .user-product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 650px) {
+  .wishlist-page .user-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+}
+@media (max-width: 420px) {
+  .wishlist-page .user-product-grid { grid-template-columns: 1fr; }
+}

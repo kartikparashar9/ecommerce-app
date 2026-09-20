@@ -1,0 +1,362 @@
+.order-tracking-page {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 30px 20px 50px;
+  box-sizing: border-box;
+}
+
+.tracking-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.tracking-back,
+.tracking-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.tracking-back {
+  color: #334155;
+  background: #f1f5f9;
+}
+
+.tracking-refresh-btn {
+  color: #ffffff;
+  background: #111827;
+}
+
+.tracking-refresh-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.tracking-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+.tracking-order-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.tracking-label {
+  display: block;
+  margin-bottom: 7px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tracking-order-card h1 {
+  margin: 0;
+  color: #111827;
+  font-size: 25px;
+}
+
+.tracking-order-summary {
+  display: flex;
+  gap: 50px;
+}
+
+.tracking-order-summary strong {
+  display: block;
+  color: #111827;
+  font-size: 16px;
+}
+
+.tracking-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.tracking-card-header h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 20px;
+}
+
+.tracking-status-badge {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tracking-timeline {
+  position: relative;
+  margin-top: 25px;
+}
+
+.tracking-step {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  min-height: 82px;
+}
+
+.tracking-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 19px;
+  top: 42px;
+  width: 2px;
+  height: 50px;
+  background: #e2e8f0;
+}
+
+.tracking-step.is-done:not(:last-child)::after {
+  background: #22c55e;
+}
+
+.tracking-step-marker {
+  position: relative;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #94a3b8;
+  box-sizing: border-box;
+}
+
+.tracking-step.is-done .tracking-step-marker {
+  border-color: #22c55e;
+  background: #22c55e;
+  color: #ffffff;
+}
+
+.tracking-step.is-active .tracking-step-marker {
+  border-color: #4f46e5;
+  color: #4f46e5;
+  box-shadow: 0 0 0 5px #eef2ff;
+}
+
+.tracking-step-content {
+  padding-top: 1px;
+}
+
+.tracking-step-content h3 {
+  margin: 0 0 5px;
+  color: #1e293b;
+  font-size: 15px;
+}
+
+.tracking-step-content p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tracking-shipping-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.tracking-info-item {
+  padding: 15px;
+  border: 1px solid #edf1f5;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.tracking-info-item span {
+  display: block;
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.tracking-info-item strong {
+  color: #1e293b;
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.tracking-empty,
+.tracking-inline-loading,
+.tracking-loading,
+.tracking-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  min-height: 180px;
+  color: #64748b;
+}
+
+.tracking-empty h3,
+.tracking-error h2 {
+  margin: 12px 0 6px;
+  color: #1e293b;
+}
+
+.tracking-empty p,
+.tracking-error p {
+  max-width: 500px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.tracking-empty small {
+  margin-top: 10px;
+  color: #94a3b8;
+}
+
+.tracking-danger-card,
+.tracking-warning-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tracking-danger-card {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.tracking-warning-card {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.tracking-danger-card h3,
+.tracking-warning-card h3 {
+  margin: 0 0 5px;
+  color: #1e293b;
+}
+
+.tracking-danger-card p,
+.tracking-warning-card p {
+  margin: 0;
+  color: #64748b;
+}
+
+.tracking-carrier-link {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #eef2f7;
+}
+
+.tracking-carrier-link a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #4f46e5;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.tracking-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 11px 16px;
+  border-radius: 8px;
+  background: #111827;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tracking-spin {
+  animation: tracking-spin 1s linear infinite;
+}
+
+@keyframes tracking-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 700px) {
+  .order-tracking-page {
+    padding: 20px 14px 40px;
+  }
+
+  .tracking-order-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tracking-order-summary {
+    width: 100%;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .tracking-shipping-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tracking-card {
+    padding: 18px;
+  }
+
+  .tracking-card-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .tracking-topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tracking-back,
+  .tracking-refresh-btn {
+    justify-content: center;
+  }
+
+  .tracking-order-summary {
+    flex-direction: column;
+  }
+}

@@ -10,11 +10,8 @@ const ProductActions = ({
   onBuyNow,
   onWishlist,
   isWishlisted = false,
+  isInCart = false,
 }) => {
-  // =====================================================
-  // STOCK
-  // =====================================================
-
   const availableStock = useMemo(() => {
     const variantStock =
       selectedVariant?.stock !== undefined && selectedVariant?.stock !== null
@@ -26,13 +23,8 @@ const ProductActions = ({
 
   const isOutOfStock = availableStock <= 0;
 
-  // =====================================================
-  // QUANTITY
-  // =====================================================
-
   const [quantity, setQuantity] = useState(1);
 
-  // Keep quantity valid whenever selected variant/stock changes.
   useEffect(() => {
     setQuantity((currentQuantity) => {
       if (availableStock <= 0) {
@@ -42,10 +34,6 @@ const ProductActions = ({
       return Math.min(Math.max(currentQuantity, 1), availableStock);
     });
   }, [availableStock]);
-
-  // =====================================================
-  // INCREASE QUANTITY
-  // =====================================================
 
   const increase = () => {
     if (isOutOfStock) {
@@ -57,17 +45,9 @@ const ProductActions = ({
     );
   };
 
-  // =====================================================
-  // DECREASE QUANTITY
-  // =====================================================
-
   const decrease = () => {
     setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1));
   };
-
-  // =====================================================
-  // API PAYLOAD
-  // =====================================================
 
   const payload = useMemo(() => {
     const variantId = selectedVariant?._id || selectedVariant?.id || null;
@@ -78,10 +58,6 @@ const ProductActions = ({
     };
   }, [quantity, selectedVariant]);
 
-  // =====================================================
-  // ADD TO CART
-  // =====================================================
-
   const handleAddToCart = () => {
     if (isOutOfStock) {
       return;
@@ -89,10 +65,6 @@ const ProductActions = ({
 
     onAddToCart?.(payload);
   };
-
-  // =====================================================
-  // BUY NOW
-  // =====================================================
 
   const handleBuyNow = () => {
     if (isOutOfStock) {
@@ -102,24 +74,8 @@ const ProductActions = ({
     onBuyNow?.(payload);
   };
 
-  // =====================================================
-  // WISHLIST
-  // =====================================================
-
-  const handleWishlist = () => {
-    onWishlist?.();
-  };
-
-  // =====================================================
-  // RENDER
-  // =====================================================
-
   return (
     <div className="product-actions">
-      {/* =================================================
-          QUANTITY
-          ================================================= */}
-
       {!isOutOfStock && (
         <div className="product-actions__quantity">
           <span>Quantity</span>
@@ -148,20 +104,22 @@ const ProductActions = ({
         </div>
       )}
 
-      {/* =================================================
-          CART / BUY NOW
-          ================================================= */}
-
       <div className="product-actions__buttons">
         <button
           type="button"
-          className="product-actions__cart"
+          className={`product-actions__cart ${
+            isInCart ? "product-actions__cart--active" : ""
+          }`}
           onClick={handleAddToCart}
           disabled={isOutOfStock}
         >
           <ShoppingCart size={18} />
 
-          {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+          {isOutOfStock
+            ? "Out of Stock"
+            : isInCart
+              ? "Added to Cart"
+              : "Add to Cart"}
         </button>
 
         <button
@@ -176,16 +134,12 @@ const ProductActions = ({
         </button>
       </div>
 
-      {/* =================================================
-          WISHLIST
-          ================================================= */}
-
       <button
         type="button"
         className={`product-actions__wishlist ${
           isWishlisted ? "product-actions__wishlist--active" : ""
         }`}
-        onClick={handleWishlist}
+        onClick={() => onWishlist?.()}
         aria-pressed={isWishlisted}
         aria-label={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
       >

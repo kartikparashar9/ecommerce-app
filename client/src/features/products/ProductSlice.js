@@ -1,15 +1,24 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-
 import { getProductsApi, getProductBySlugApi } from "./ProductApi";
 
-// =====================================================
-// PRODUCT NORMALIZER
-// =====================================================
-
-const normalizeProduct = (product) => {
-  if (!product || typeof product !== "object") {
-    return null;
+const firstFiniteNumber = (...values) => {
+  for (const value of values) {
+    const number = Number(value);
+    if (Number.isFinite(number)) return number;
   }
+  return 0;
+};
+
+const normalizeImage = (image) => {
+  if (typeof image === "string" && image.trim()) return image.trim();
+  if (image && typeof image === "object") {
+    return image.url || image.secure_url || image.path || image.src || "";
+  }
+  return "";
+};
+
+export const normalizeProduct = (product) => {
+  if (!product || typeof product !== "object") return null;
 
   const category =
     product.category && typeof product.category === "object"
@@ -17,148 +26,139 @@ const normalizeProduct = (product) => {
       : null;
 
   const brand =
-    product.brand && typeof product.brand === "object" ? product.brand : null;
+    product.brand && typeof product.brand === "object"
+      ? product.brand
+      : null;
+
+  const rawImages = Array.isArray(product.images)
+    ? product.images
+    : product.image
+      ? [product.image]
+      : [];
+
+  const images = rawImages.map(normalizeImage).filter(Boolean);
 
   const variants = Array.isArray(product.variants)
     ? product.variants.filter(Boolean)
     : [];
 
-  const images = Array.isArray(product.images)
-    ? product.images.filter(
-        (image) => typeof image === "string" && image.trim(),
-      )
-    : typeof product.image === "string" && product.image.trim()
-      ? [product.image]
-      : [];
+  const displayVariant =
+    variants.find(
+      (variant) =>
+        variant &&
+        variant.isActive !== false &&
+        Number(variant.stock) > 0,
+    ) ||
+    variants.find((variant) => variant && variant.isActive !== false) ||
+    null;
 
-  const firstImage = images[0] || "";
+  // Variant price is the MRP. Product.discount is applied to that MRP
+  // so the frontend follows the same pricing contract as the backend.
+  const basePrice = firstFiniteNumber(
+    displayVariant?.price,
+    product.basePrice,
+    product.mrp,
+    product.originalPrice,
+    product.oldPrice,
+    product.price,
+  );
 
-  const finalPrice = Number(product.finalPrice);
-  const basePrice = Number(product.basePrice);
-  const discount = Number(product.discount);
-  const averageRating = Number(product.averageRating);
-  const totalReviews = Number(product.totalReviews);
-  const totalStock = Number(product.totalStock);
-  const totalSold = Number(product.totalSold);
+  const discount = Math.min(
+    Math.max(firstFiniteNumber(product.discount, 0), 0),
+    100,
+  );
+
+  const productDiscount = Math.round(((basePrice * discount) / 100) * 100) / 100;
+  const finalPrice = Math.max(0, Math.round((basePrice - productDiscount) * 100) / 100);
+
+  const averageRating = firstFiniteNumber(
+    product.averageRating,
+    product.rating,
+  );
+
+  const totalReviews = firstFiniteNumber(
+    product.totalReviews,
+    product.ratingCount,
+    product.reviewCount,
+  );
+
+  const totalStock = firstFiniteNumber(
+    product.totalStock,
+    product.stock,
+    product.quantity,
+  );
+
+  const totalSold = firstFiniteNumber(
+    product.totalSold,
+    product.soldCount,
+  );
+
+  const description =
+    typeof product.description === "string" && product.description.trim()
+      ? product.description.trim()
+      : typeof product.shortDescription === "string"
+        ? product.shortDescription.trim()
+        : "";
+
+  const shortDescription =
+    typeof product.shortDescription === "string" &&
+    product.shortDescription.trim()
+      ? product.shortDescription.trim()
+      : description;
 
   return {
-    // -------------------------------------------------
-    // ORIGINAL BACKEND DATA
-    // -------------------------------------------------
-
     ...product,
-
-    // -------------------------------------------------
-    // ID / SLUG
-    // -------------------------------------------------
-
     id: product._id ? String(product._id) : "",
-
     _id: product._id ? String(product._id) : "",
-
     slug:
       typeof product.slug === "string" && product.slug.trim()
         ? product.slug.trim()
         : "",
-
-    // -------------------------------------------------
-    // IMAGES
-    // -------------------------------------------------
-
     images,
-
-    image: firstImage,
-
-    // -------------------------------------------------
-    // PRICE
-    // -------------------------------------------------
-
-    finalPrice: Number.isFinite(finalPrice) ? finalPrice : 0,
-
-    basePrice: Number.isFinite(basePrice) ? basePrice : 0,
-
-    discount: Number.isFinite(discount) ? discount : 0,
-
-    // Common frontend aliases
-    price: Number.isFinite(finalPrice) ? finalPrice : 0,
-
-    oldPrice: Number.isFinite(basePrice) ? basePrice : 0,
-
-    // -------------------------------------------------
-    // RATING
-    // -------------------------------------------------
-
-    averageRating: Number.isFinite(averageRating) ? averageRating : 0,
-
-    totalReviews: Number.isFinite(totalReviews) ? totalReviews : 0,
-
-    // Common frontend aliases
-    rating: Number.isFinite(averageRating) ? averageRating : 0,
-
-    ratingCount: Number.isFinite(totalReviews) ? totalReviews : 0,
-
-    // -------------------------------------------------
-    // STOCK / SALES
-    // -------------------------------------------------
-
-    totalStock: Number.isFinite(totalStock) ? totalStock : 0,
-
-    totalSold: Number.isFinite(totalSold) ? totalSold : 0,
-
-    stock: Number.isFinite(totalStock) ? totalStock : 0,
-
-    soldCount: Number.isFinite(totalSold) ? totalSold : 0,
-
-    // -------------------------------------------------
-    // VARIANTS
-    // -------------------------------------------------
-
+    image: images[0] || "",
+    description,
+    shortDescription,
+    finalPrice,
+    basePrice,
+    discount,
+    price: finalPrice,
+    oldPrice: basePrice,
+    mrp: basePrice,
+    sellingPrice: finalPrice,
+    averageRating: Math.min(Math.max(averageRating, 0), 5),
+    totalReviews: Math.max(totalReviews, 0),
+    rating: Math.min(Math.max(averageRating, 0), 5),
+    ratingCount: Math.max(totalReviews, 0),
+    totalStock: Math.max(totalStock, 0),
+    totalSold: Math.max(totalSold, 0),
+    stock: Math.max(totalStock, 0),
+    soldCount: Math.max(totalSold, 0),
     variants,
-
-    // -------------------------------------------------
-    // CATEGORY
-    // -------------------------------------------------
-
     categoryName:
       category?.name ||
       (typeof product.category === "string" ? product.category : ""),
-
     categoryId:
       category?._id ||
       (typeof product.category === "string" ? product.category : ""),
-
-    // -------------------------------------------------
-    // BRAND
-    // -------------------------------------------------
-
     brandName:
       brand?.name || (typeof product.brand === "string" ? product.brand : ""),
-
     brandId:
-      brand?._id || (typeof product.brand === "string" ? product.brand : ""),
+      brand?._id ||
+      (typeof product.brand === "string" ? product.brand : ""),
   };
 };
 
-// =====================================================
-// FETCH PRODUCTS
-// =====================================================
-
 export const fetchProducts = createAsyncThunk(
   "products/fetchProducts",
-
   async (params = {}, { rejectWithValue }) => {
     try {
       const result = await getProductsApi(params);
-
-      const rawProducts = Array.isArray(result?.products)
-        ? result.products
-        : [];
-
-      const products = rawProducts.map(normalizeProduct).filter(Boolean);
+      const products = (Array.isArray(result?.products) ? result.products : [])
+        .map(normalizeProduct)
+        .filter(Boolean);
 
       return {
         products,
-
         pagination: result?.pagination || null,
       };
     } catch (error) {
@@ -171,28 +171,16 @@ export const fetchProducts = createAsyncThunk(
   },
 );
 
-// =====================================================
-// FETCH PRODUCT BY SLUG
-// =====================================================
-
 export const fetchProductBySlug = createAsyncThunk(
   "products/fetchProductBySlug",
-
   async (slug, { rejectWithValue }) => {
     try {
-      if (!slug?.trim()) {
-        throw new Error("Product slug is required");
-      }
+      if (!slug?.trim()) throw new Error("Product slug is required");
 
-      const product = await getProductBySlugApi(slug);
+      const product = normalizeProduct(await getProductBySlugApi(slug));
+      if (!product) throw new Error("Product not found");
 
-      const normalizedProduct = normalizeProduct(product);
-
-      if (!normalizedProduct) {
-        throw new Error("Product not found");
-      }
-
-      return normalizedProduct;
+      return product;
     } catch (error) {
       return rejectWithValue(
         error?.response?.data?.message ||
@@ -203,15 +191,9 @@ export const fetchProductBySlug = createAsyncThunk(
   },
 );
 
-// =====================================================
-// INITIAL STATE
-// =====================================================
-
 const initialState = {
   items: [],
-
   currentProduct: null,
-
   pagination: {
     currentPage: 1,
     limit: 20,
@@ -220,126 +202,67 @@ const initialState = {
     hasNextPage: false,
     hasPreviousPage: false,
   },
-
   loading: false,
-
   currentLoading: false,
-
   error: null,
-
   currentError: null,
 };
 
-// =====================================================
-// PRODUCT SLICE
-// =====================================================
-
 const productSlice = createSlice({
   name: "products",
-
   initialState,
-
   reducers: {
     clearCurrentProduct: (state) => {
       state.currentProduct = null;
       state.currentError = null;
       state.currentLoading = false;
     },
-
     clearProductError: (state) => {
       state.error = null;
       state.currentError = null;
     },
   },
-
   extraReducers: (builder) => {
-    // =================================================
-    // FETCH PRODUCTS
-    // =================================================
-
     builder
-
       .addCase(fetchProducts.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.loading = false;
-        state.error = null;
-
-        state.items = Array.isArray(action.payload?.products)
-          ? action.payload.products
-          : [];
-
-        if (action.payload?.pagination) {
-          state.pagination = {
-            ...state.pagination,
-            ...action.payload.pagination,
-          };
-        }
+        state.items = action.payload.products;
+        state.pagination = action.payload.pagination || state.pagination;
       })
-
       .addCase(fetchProducts.rejected, (state, action) => {
         state.loading = false;
-
-        state.error = action.payload || "Failed to load products";
+        state.error = action.payload;
       })
-
-      // =================================================
-      // FETCH SINGLE PRODUCT
-      // =================================================
-
       .addCase(fetchProductBySlug.pending, (state) => {
         state.currentLoading = true;
         state.currentError = null;
-        state.currentProduct = null;
       })
-
       .addCase(fetchProductBySlug.fulfilled, (state, action) => {
         state.currentLoading = false;
-        state.currentError = null;
-
-        state.currentProduct = action.payload || null;
+        state.currentProduct = action.payload;
       })
-
       .addCase(fetchProductBySlug.rejected, (state, action) => {
         state.currentLoading = false;
-        state.currentProduct = null;
-
-        state.currentError = action.payload || "Failed to load product";
+        state.currentError = action.payload;
       });
   },
 });
 
-// =====================================================
-// ACTIONS
-// =====================================================
-
 export const { clearCurrentProduct, clearProductError } = productSlice.actions;
 
-// =====================================================
-// SELECTORS
-// =====================================================
-
 export const selectProducts = (state) => state.products?.items || [];
-
 export const selectCurrentProduct = (state) =>
   state.products?.currentProduct || null;
-
 export const selectProductsLoading = (state) =>
   Boolean(state.products?.loading);
-
 export const selectCurrentProductLoading = (state) =>
   Boolean(state.products?.currentLoading);
-
 export const selectProductsError = (state) => state.products?.error || null;
-
 export const selectCurrentProductError = (state) =>
   state.products?.currentError || null;
-
-// =====================================================
-// REDUCER
-// =====================================================
 
 export default productSlice.reducer;

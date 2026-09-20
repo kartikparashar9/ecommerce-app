@@ -26,6 +26,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/Signup";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 // =====================================================
 // USER PAGES
@@ -34,6 +35,12 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import UserProfilePage from "./pages/UserProfile";
 import WishlistPage from "./pages/WishlistPage";
 import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import PaymentGatewayPage from "./pages/Payment";
+import OrderSuccess from "./pages/OrderSuccess";
+import OrdersPage from "./features/order/component/Orders";
+import OrderDetailsPage from "./pages/OrderDetailsPage";
+import OrderTrackingPage from "./pages/OrderTrackingPage";
 
 // =====================================================
 // CATEGORY PAGES
@@ -83,12 +90,18 @@ function App() {
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route
+          path="/forgot-password"
+          element={<ForgotPasswordPage />}
+        />
+        <Route
+          path="/reset-password"
+          element={<ResetPasswordPage />}
+        />
       </Route>
 
       {/* =====================================================
-          MARKETPLACE / USER WEBSITE
+          MARKETPLACE / PUBLIC WEBSITE
       ===================================================== */}
 
       <Route element={<MarketplaceGuard />}>
@@ -102,25 +115,80 @@ function App() {
 
           <Route path="/search" element={<SearchResults />} />
 
-          <Route path="/product/:slug" element={<ProductDetails />} />
+          <Route
+            path="/product/:slug"
+            element={<ProductDetails />}
+          />
         </Route>
       </Route>
 
       {/* =====================================================
-          NORMAL USER ONLY ROUTES
+          AUTHENTICATED USER ROUTES
           
-          ProtectedRoute now prevents:
-          - seller
-          - admin
-          
-          from entering user pages.
+          These routes require:
+          - valid access token
+          - role === "user"
+
+          This protects the complete shopping flow:
+          Profile → Wishlist → Cart → Checkout
+          → Payment → Order Success → Orders
       ===================================================== */}
 
       <Route element={<ProtectedRoute allowedRoles={["user"]} />}>
         <Route element={<UserLayout />}>
-          <Route path="/profile" element={<UserProfilePage />} />
-          <Route path="/wishlist" element={<WishlistPage />} />
-          <Route path="/cart" element={<CartPage />} />
+          {/* Profile */}
+          <Route
+            path="/profile"
+            element={<UserProfilePage />}
+          />
+
+          {/* Wishlist */}
+          <Route
+            path="/wishlist"
+            element={<WishlistPage />}
+          />
+
+          {/* Cart */}
+          <Route
+            path="/cart"
+            element={<CartPage />}
+          />
+
+          {/* Checkout */}
+          <Route
+            path="/checkout"
+            element={<CheckoutPage />}
+          />
+
+          {/* Online Payment */}
+          <Route
+            path="/payment/:orderId"
+            element={<PaymentGatewayPage />}
+          />
+
+          {/* Order Success */}
+          <Route
+            path="/order-success"
+            element={<OrderSuccess />}
+          />
+
+          {/* Orders */}
+          <Route
+            path="/orders"
+            element={<OrdersPage />}
+          />
+
+          {/* Order Tracking */}
+          <Route
+            path="/orders/:orderId/track"
+            element={<OrderTrackingPage />}
+          />
+
+          {/* Order Details */}
+          <Route
+            path="/orders/:orderId"
+            element={<OrderDetailsPage />}
+          />
         </Route>
       </Route>
 
@@ -128,31 +196,95 @@ function App() {
           SELLER SYSTEM
       ===================================================== */}
 
-      <Route element={<RoleProtected allowedRoles={["seller"]} />}>
-        <Route path="/seller/*" element={<SellerRoutes />} />
+      <Route
+        element={
+          <RoleProtected allowedRoles={["seller"]} />
+        }
+      >
+        <Route
+          path="/seller/*"
+          element={<SellerRoutes />}
+        />
       </Route>
 
       {/* =====================================================
           ADMIN SYSTEM
       ===================================================== */}
 
-      <Route element={<RoleProtected allowedRoles={["admin"]} />}>
+      <Route
+        element={
+          <RoleProtected allowedRoles={["admin"]} />
+        }
+      >
         <Route element={<AdminLayout />}>
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/sellers" element={<AdminSellers />} />
-          <Route path="/admin/products" element={<AdminProducts />} />
-          <Route path="/admin/orders" element={<AdminOrders />} />
-          <Route path="/admin/brands" element={<AdminBrands />} />
-          <Route path="/admin/notifications" element={<AdminNotification />} />
-          <Route path="/admin/categories" element={<AdminCategories />} />
-          <Route path="/admin/analytics" element={<AdminAnalytics />} />
-          <Route path="/admin/reviews" element={<AdminReviews />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
+          <Route
+            path="/admin/dashboard"
+            element={<AdminDashboard />}
+          />
+
+          <Route
+            path="/admin/users"
+            element={<AdminUsers />}
+          />
+
+          <Route
+            path="/admin/sellers"
+            element={<AdminSellers />}
+          />
+
+          <Route
+            path="/admin/products"
+            element={<AdminProducts />}
+          />
+
+          <Route
+            path="/admin/orders"
+            element={<AdminOrders />}
+          />
+
+          <Route
+            path="/admin/brands"
+            element={<AdminBrands />}
+          />
+
+          <Route
+            path="/admin/notifications"
+            element={<AdminNotification />}
+          />
+
+          <Route
+            path="/admin/categories"
+            element={<AdminCategories />}
+          />
+
+          <Route
+            path="/admin/analytics"
+            element={<AdminAnalytics />}
+          />
+
+          <Route
+            path="/admin/reviews"
+            element={<AdminReviews />}
+          />
+
+          <Route
+            path="/admin/settings"
+            element={<AdminSettings />}
+          />
         </Route>
       </Route>
+
+      {/* =====================================================
+          404
+      ===================================================== */}
+
+      <Route
+        path="*"
+        element={<NotFoundPage />}
+      />
     </Routes>
   );
 }
 
 export default App;
+

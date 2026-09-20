@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { ArrowLeft } from "lucide-react";
 
-import { addToCart } from "../../../cart/CartSlice";
+import { addToCart, fetchCart } from "../../../cart/CartSlice";
 
 import {
   addToWishlist,
@@ -46,11 +46,25 @@ const getWishlistProductId = (item) => {
   }
 
   return (
-    item._id ||
-    item.product?._id ||
-    item.product?.id ||
-    item.productId ||
-    item.id ||
+    item?.product?._id ||
+    item?.product?.id ||
+    item?.productId ||
+    item?._id ||
+    item?.id ||
+    null
+  );
+};
+
+const getCartProductId = (item) => {
+  if (!item) {
+    return null;
+  }
+
+  return (
+    item?.product?._id ||
+    item?.product?.id ||
+    item?.productId ||
+    (typeof item?.product === "string" ? item.product : null) ||
     null
   );
 };
@@ -94,7 +108,10 @@ const ProductDetails = () => {
   const { currentProduct, currentLoading, currentError, items } = productsState;
 
   const authState = useSelector((state) => state.auth || {});
+
   const wishlistState = useSelector((state) => state.wishlist || {});
+
+  const cartState = useSelector((state) => state.cart || {});
 
   const isAuthenticated = Boolean(authState.isAuthenticated);
 
@@ -102,15 +119,21 @@ const ProductDetails = () => {
     ? wishlistState.items
     : [];
 
+  // IMPORTANT:
+  // CartSlice may use items as the cart array.
+  // Keep it safely normalized.
+  const cartItems = Array.isArray(cartState.items) ? cartState.items : [];
+
   // ===================================================
   // LOCAL STATE
   // ===================================================
 
   const [selectedVariant, setSelectedVariant] = useState(null);
+
   const [actionMessage, setActionMessage] = useState("");
 
   // ===================================================
-  // FETCH PRODUCT BY SLUG
+  // FETCH PRODUCT
   // ===================================================
 
   useEffect(() => {
@@ -130,48 +153,60 @@ const ProductDetails = () => {
       return;
     }
 
-    // Clear old product before loading the new one.
+    // Clear only when slug changes.
     dispatch(clearCurrentProduct());
 
-    // IMPORTANT:
-    // Dispatch the thunk only once.
-    // Do not console.log(dispatch(...)) because that returns
-    // the Redux Toolkit thunk Promise.
+    // Fetch exactly once.
     dispatch(fetchProductBySlug(decodedSlug));
   }, [dispatch, slug]);
 
   // ===================================================
-  // SELECT DEFAULT VARIANT
+  // DEFAULT VARIANT
   // ===================================================
 
   useEffect(() => {
-    if (
-      !currentProduct ||
-      !Array.isArray(currentProduct.variants) ||
-      currentProduct.variants.length === 0
-    ) {
-      setSelectedVariant(null);
+    const variants = Array.isArray(currentProduct?.variants)
+      ? currentProduct.variants
+      : [];
+
+    if (variants.length === 0) {
+      setSelectedVariant((previous) => (previous === null ? previous : null));
+
       return;
     }
 
-    const activeVariants = currentProduct.variants.filter(
+    const activeVariants = variants.filter(
       (variant) => variant && variant.isActive !== false,
     );
 
     if (activeVariants.length === 0) {
-      setSelectedVariant(null);
+      setSelectedVariant((previous) => (previous === null ? previous : null));
+
       return;
     }
 
-    const availableVariant =
-      activeVariants.find((variant) => Number(variant.stock) > 0) ||
-      activeVariants[0];
+    setSelectedVariant((previous) => {
+      // Keep the user's selected variant.
+      if (previous?._id) {
+        const sameVariant = activeVariants.find(
+          (variant) => String(variant._id) === String(previous._id),
+        );
 
-    setSelectedVariant(availableVariant);
-  }, [currentProduct]);
+        if (sameVariant) {
+          return sameVariant;
+        }
+      }
+
+      // Select first available variant.
+      return (
+        activeVariants.find((variant) => Number(variant.stock) > 0) ||
+        activeVariants[0]
+      );
+    });
+  }, [currentProduct?.variants]);
 
   // ===================================================
-  // FETCH WISHLIST
+  // LOAD CART + WISHLIST
   // ===================================================
 
   useEffect(() => {
@@ -180,15 +215,27 @@ const ProductDetails = () => {
     }
 
     dispatch(fetchWishlist());
+    dispatch(fetchCart());
   }, [dispatch, isAuthenticated]);
 
   // ===================================================
-  // FETCH RELATED PRODUCTS
+  // CATEGORY ID
+  // ===================================================
+
+  const categoryId = useMemo(
+    () => getCategoryId(currentProduct),
+    [
+      currentProduct?.categoryId,
+      currentProduct?.category?._id,
+      currentProduct?.category,
+    ],
+  );
+
+  // ===================================================
+  // RELATED PRODUCTS
   // ===================================================
 
   useEffect(() => {
-    const categoryId = getCategoryId(currentProduct);
-
     if (!categoryId) {
       return;
     }
@@ -200,10 +247,10 @@ const ProductDetails = () => {
         category: categoryId,
       }),
     );
-  }, [dispatch, currentProduct]);
+  }, [dispatch, categoryId]);
 
   // ===================================================
-  // RELATED PRODUCTS
+  // RELATED PRODUCTS DATA
   // ===================================================
 
   const relatedProducts = useMemo(() => {
@@ -225,7 +272,7 @@ const ProductDetails = () => {
           return false;
         }
 
-        // Do not show the current product.
+        // Do not show current product.
         if (currentId && String(productId) === String(currentId)) {
           return false;
         }
@@ -247,22 +294,44 @@ const ProductDetails = () => {
     }
 
     return wishlistItems.some((item) => {
-      const wishlistProductId = getWishlistProductId(item);
+      const wishlistId = getWishlistProductId(item);
 
-      if (!wishlistProductId) {
+      if (!wishlistId) {
         return false;
       }
 
-      return String(wishlistProductId) === String(currentId);
+      return String(wishlistId) === String(currentId);
     });
   }, [wishlistItems, currentProduct]);
+
+  // ===================================================
+  // CART STATUS
+  // ===================================================
+
+  const isInCart = useMemo(() => {
+    const currentId = getProductId(currentProduct);
+
+    if (!currentId) {
+      return false;
+    }
+
+    return cartItems.some((item) => {
+      const cartProductId = getCartProductId(item);
+
+      if (!cartProductId) {
+        return false;
+      }
+
+      return String(cartProductId) === String(currentId);
+    });
+  }, [cartItems, currentProduct]);
 
   // ===================================================
   // MESSAGE
   // ===================================================
 
-  const showMessage = useCallback((text) => {
-    setActionMessage(text);
+  const showMessage = useCallback((message) => {
+    setActionMessage(message);
 
     window.setTimeout(() => {
       setActionMessage("");
@@ -270,7 +339,7 @@ const ProductDetails = () => {
   }, []);
 
   // ===================================================
-  // AUTH CHECK
+  // AUTH
   // ===================================================
 
   const requireAuth = useCallback(() => {
@@ -305,6 +374,7 @@ const ProductDetails = () => {
 
       if (!productId) {
         showMessage("Product information is incomplete");
+
         return;
       }
 
@@ -312,6 +382,7 @@ const ProductDetails = () => {
         await dispatch(
           addToCart({
             productId: String(productId),
+            product: currentProduct,
             variantId: variantId || selectedVariant?._id || undefined,
             quantity: Number(quantity) || 1,
           }),
@@ -319,12 +390,12 @@ const ProductDetails = () => {
 
         showMessage("Product added to cart");
       } catch (error) {
-        const errorMessage =
+        const message =
           typeof error === "string"
             ? error
             : error?.message || "Unable to add product to cart";
 
-        showMessage(errorMessage);
+        showMessage(message);
       }
     },
     [currentProduct, dispatch, requireAuth, selectedVariant, showMessage],
@@ -348,6 +419,7 @@ const ProductDetails = () => {
 
       if (!productId) {
         showMessage("Product information is incomplete");
+
         return;
       }
 
@@ -355,6 +427,7 @@ const ProductDetails = () => {
         await dispatch(
           addToCart({
             productId: String(productId),
+            product: currentProduct,
             variantId: variantId || selectedVariant?._id || undefined,
             quantity: Number(quantity) || 1,
           }),
@@ -362,12 +435,12 @@ const ProductDetails = () => {
 
         navigate("/cart");
       } catch (error) {
-        const errorMessage =
+        const message =
           typeof error === "string"
             ? error
             : error?.message || "Unable to continue to cart";
 
-        showMessage(errorMessage);
+        showMessage(message);
       }
     },
     [
@@ -397,6 +470,7 @@ const ProductDetails = () => {
 
     if (!productId) {
       showMessage("Product information is incomplete");
+
       return;
     }
 
@@ -406,17 +480,22 @@ const ProductDetails = () => {
 
         showMessage("Removed from wishlist");
       } else {
-        await dispatch(addToWishlist(String(productId))).unwrap();
+        await dispatch(
+          addToWishlist({
+            productId: String(productId),
+            product: currentProduct,
+          }),
+        ).unwrap();
 
         showMessage("Added to wishlist");
       }
     } catch (error) {
-      const errorMessage =
+      const message =
         typeof error === "string"
           ? error
           : error?.message || "Unable to update wishlist";
 
-      showMessage(errorMessage);
+      showMessage(message);
     }
   }, [currentProduct, dispatch, isWishlisted, requireAuth, showMessage]);
 
@@ -437,7 +516,7 @@ const ProductDetails = () => {
   }
 
   // ===================================================
-  // ERROR / PRODUCT NOT FOUND
+  // ERROR
   // ===================================================
 
   if (currentError || !currentProduct) {
@@ -458,14 +537,10 @@ const ProductDetails = () => {
   }
 
   // ===================================================
-  // PRODUCT ID
+  // PRODUCT VALUES
   // ===================================================
 
   const productId = getProductId(currentProduct);
-
-  // ===================================================
-  // SAFE PRODUCT VALUES
-  // ===================================================
 
   const productName = currentProduct.name || "Product";
 
@@ -479,9 +554,10 @@ const ProductDetails = () => {
 
   const categoryName =
     currentProduct.categoryName ||
-    (currentProduct.category && typeof currentProduct.category === "object")
-      ? currentProduct.category?.name
-      : currentProduct.category || "Product";
+    (currentProduct.category && typeof currentProduct.category === "object"
+      ? currentProduct.category.name
+      : currentProduct.category) ||
+    "Product";
 
   const productStock = Number(
     selectedVariant?.stock ??
@@ -569,6 +645,7 @@ const ProductDetails = () => {
             onBuyNow={handleBuyNow}
             onWishlist={handleWishlist}
             isWishlisted={isWishlisted}
+            isInCart={isInCart}
           />
         </div>
       </section>
@@ -618,7 +695,6 @@ const ProductDetails = () => {
       )}
     </main>
   );
-  navigate;
 };
 
 export default ProductDetails;

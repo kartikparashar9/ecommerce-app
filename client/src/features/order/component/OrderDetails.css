@@ -1,0 +1,31 @@
+.order-details-page {
+  min-width: 0;
+}
+.order-detail-header {
+  align-items: center;
+}
+.order-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: -8px 0 20px;
+}
+@media (max-width: 900px) {
+  .order-detail-layout {
+    grid-template-columns: 1fr;
+  }
+  .order-summary-card {
+    position: static;
+  }
+}
+@media (max-width: 600px) {
+  .order-detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .order-detail-actions {
+    justify-content: stretch;
+  }
+  .order-detail-actions .user-primary-button {
+    width: 100%;
+  }
+}

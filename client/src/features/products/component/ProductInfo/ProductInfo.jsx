@@ -1,6 +1,7 @@
 import React from "react";
 
 import "./ProductInfo.css";
+import { getVariantPricing } from "../../../utils/pricing";
 
 const ProductInfo = ({ product, selectedVariant }) => {
   if (!product) {
@@ -13,7 +14,7 @@ const ProductInfo = ({ product, selectedVariant }) => {
 
   const name = product.name || "Product";
 
-  const shortDescription = product.shortDescription || "";
+  const shortDescription = product.shortDescription || product.description || "";
 
   const categoryName =
     product.categoryName ||
@@ -33,24 +34,10 @@ const ProductInfo = ({ product, selectedVariant }) => {
   // PRICE
   // =====================================================
 
-  const productFinalPrice = Number(product.finalPrice ?? product.price ?? 0);
-
-  const productBasePrice = Number(product.basePrice ?? product.oldPrice ?? 0);
-
-  const discount = Number(product.discount ?? 0);
-
-  const variantPrice = Number(selectedVariant?.price);
-
-  const displayPrice =
-    Number.isFinite(variantPrice) && variantPrice > 0
-      ? variantPrice
-      : Number.isFinite(productFinalPrice)
-        ? productFinalPrice
-        : 0;
-
-  const displayOldPrice = Number.isFinite(productBasePrice)
-    ? productBasePrice
-    : 0;
+  const pricing = getVariantPricing(product, selectedVariant);
+  const displayPrice = pricing.sellingPrice;
+  const displayOldPrice = pricing.mrp;
+  const discount = pricing.discountPercent;
 
   // =====================================================
   // RATING
@@ -145,7 +132,7 @@ const ProductInfo = ({ product, selectedVariant }) => {
 
         {displayOldPrice > displayPrice && (
           <del className="product-info__old-price">
-            ₹{displayOldPrice.toLocaleString("en-IN")}
+            MRP ₹{displayOldPrice.toLocaleString("en-IN")}
           </del>
         )}
 

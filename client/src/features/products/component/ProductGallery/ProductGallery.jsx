@@ -1,5 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { resolveMediaUrl } from "../../../utils/media";
+
 import "./ProductGallery.css";
+
 const ProductGallery = ({ images = [], productName = "" }) => {
   // =====================================================
   // NORMALIZE IMAGE DATA
@@ -18,74 +21,119 @@ const ProductGallery = ({ images = [], productName = "" }) => {
 
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const activeIndexRef = useRef(0);
+  const imageCountRef = useRef(validImages.length);
+
+  // Keep refs synchronized
+  useEffect(() => {
+    imageCountRef.current = validImages.length;
+  }, [validImages.length]);
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
   const hasMultipleImages = validImages.length > 1;
+
+  // =====================================================
+  // RESET ACTIVE IMAGE ONLY WHEN IMAGE COUNT CHANGES
+  // =====================================================
+
+  const previousImageCountRef = useRef(validImages.length);
+
+  useEffect(() => {
+    const previousCount = previousImageCountRef.current;
+    const currentCount = validImages.length;
+
+    if (previousCount !== currentCount) {
+      setActiveIndex((currentIndex) => {
+        if (currentCount === 0) {
+          return 0;
+        }
+
+        return Math.min(currentIndex, currentCount - 1);
+      });
+
+      previousImageCountRef.current = currentCount;
+    }
+  }, [validImages.length]);
 
   // =====================================================
   // NEXT IMAGE
   // =====================================================
 
-  const nextImage = useCallback(() => {
-    if (!hasMultipleImages) {
+  const nextImage = () => {
+    const count = imageCountRef.current;
+
+    if (count <= 1) {
       return;
     }
 
-    setActiveIndex((currentIndex) =>
-      currentIndex >= validImages.length - 1 ? 0 : currentIndex + 1,
-    );
-  }, [hasMultipleImages, validImages.length]);
+    setActiveIndex((currentIndex) => {
+      const nextIndex = currentIndex >= count - 1 ? 0 : currentIndex + 1;
+
+      activeIndexRef.current = nextIndex;
+
+      return nextIndex;
+    });
+  };
 
   // =====================================================
   // PREVIOUS IMAGE
   // =====================================================
 
-  const previousImage = useCallback(() => {
-    if (!hasMultipleImages) {
+  const previousImage = () => {
+    const count = imageCountRef.current;
+
+    if (count <= 1) {
       return;
     }
 
-    setActiveIndex((currentIndex) =>
-      currentIndex <= 0 ? validImages.length - 1 : currentIndex - 1,
-    );
-  }, [hasMultipleImages, validImages.length]);
+    setActiveIndex((currentIndex) => {
+      const previousIndex = currentIndex <= 0 ? count - 1 : currentIndex - 1;
+
+      activeIndexRef.current = previousIndex;
+
+      return previousIndex;
+    });
+  };
 
   // =====================================================
   // AUTO SLIDE
   // =====================================================
 
   useEffect(() => {
-    if (!hasMultipleImages) {
+    if (validImages.length <= 1) {
       return undefined;
     }
 
     const timer = window.setInterval(() => {
-      nextImage();
+      const count = imageCountRef.current;
+
+      if (count <= 1) {
+        return;
+      }
+
+      setActiveIndex((currentIndex) => {
+        const nextIndex = currentIndex >= count - 1 ? 0 : currentIndex + 1;
+
+        activeIndexRef.current = nextIndex;
+
+        return nextIndex;
+      });
     }, 4000);
 
     return () => {
       window.clearInterval(timer);
     };
-  }, [hasMultipleImages, nextImage]);
-
-  // =====================================================
-  // RESET ACTIVE IMAGE WHEN PRODUCT IMAGES CHANGE
-  // =====================================================
-
-  useEffect(() => {
-    setActiveIndex((currentIndex) => {
-      if (validImages.length === 0) {
-        return 0;
-      }
-
-      return Math.min(currentIndex, validImages.length - 1);
-    });
-  }, [validImages]);
+  }, [validImages.length]);
 
   // =====================================================
   // KEYBOARD NAVIGATION
   // =====================================================
 
   useEffect(() => {
-    if (!hasMultipleImages) {
+    if (validImages.length <= 1) {
       return undefined;
     }
 
@@ -104,7 +152,7 @@ const ProductGallery = ({ images = [], productName = "" }) => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [hasMultipleImages, nextImage, previousImage]);
+  }, [validImages.length]);
 
   // =====================================================
   // EMPTY STATE
@@ -118,8 +166,9 @@ const ProductGallery = ({ images = [], productName = "" }) => {
     );
   }
 
-  const activeImage = validImages[activeIndex] || validImages[0];
-  console.log(activeImage)
+  const safeActiveIndex = Math.min(activeIndex, validImages.length - 1);
+
+  const activeImage = validImages[safeActiveIndex] || validImages[0];
 
   // =====================================================
   // RENDER
@@ -137,14 +186,19 @@ const ProductGallery = ({ images = [], productName = "" }) => {
             type="button"
             key={`${image}-${index}`}
             className={`product-gallery__thumbnail ${
-              activeIndex === index ? "product-gallery__thumbnail--active" : ""
+              safeActiveIndex === index
+                ? "product-gallery__thumbnail--active"
+                : ""
             }`}
-            onClick={() => setActiveIndex(index)}
+            onClick={() => {
+              activeIndexRef.current = index;
+              setActiveIndex(index);
+            }}
             aria-label={`View image ${index + 1}`}
-            aria-current={activeIndex === index ? "true" : undefined}
+            aria-current={safeActiveIndex === index ? "true" : undefined}
           >
             <img
-              src={image}
+              src={resolveMediaUrl(image)}
               alt={`${productName || "Product"} ${index + 1}`}
               loading={index === 0 ? "eager" : "lazy"}
               decoding="async"
@@ -159,12 +213,12 @@ const ProductGallery = ({ images = [], productName = "" }) => {
 
       <div className="product-gallery__main">
         <span className="product-gallery__discount">
-          {activeIndex + 1}/{validImages.length}
+          {safeActiveIndex + 1}/{validImages.length}
         </span>
 
         <img
-          src={activeImage}
-          alt={`${productName || "Product"} ${activeIndex + 1}`}
+          src={resolveMediaUrl(activeImage)}
+          alt={`${productName || "Product"} ${safeActiveIndex + 1}`}
           className="product-gallery__main-image"
           loading="eager"
           decoding="async"
@@ -230,11 +284,14 @@ const ProductGallery = ({ images = [], productName = "" }) => {
               type="button"
               key={index}
               className={`product-gallery__dot ${
-                activeIndex === index ? "product-gallery__dot--active" : ""
+                safeActiveIndex === index ? "product-gallery__dot--active" : ""
               }`}
-              onClick={() => setActiveIndex(index)}
+              onClick={() => {
+                activeIndexRef.current = index;
+                setActiveIndex(index);
+              }}
               aria-label={`Go to image ${index + 1}`}
-              aria-current={activeIndex === index ? "true" : undefined}
+              aria-current={safeActiveIndex === index ? "true" : undefined}
             />
           ))}
         </div>

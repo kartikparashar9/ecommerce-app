@@ -1,0 +1,5 @@
+.orders-page { min-width: 0; }
+@media (max-width: 700px) {
+  .orders-page .order-card { flex-direction: column; gap: 14px; }
+  .orders-page .order-card > div:last-child { align-items: flex-start; }
+}
