@@ -26,7 +26,7 @@ const Footer = () => {
           viewport={{ once: true }}
         >
           <div className="footer-logo">
-            {/* <img src={logo} alt="ShopSphere Logo" /> */}
+            {/* <img src={logo} alt="JustBuy Logo" /> */}
 
             <h2>
               Just<span>Buy</span>
@@ -34,7 +34,7 @@ const Footer = () => {
           </div>
 
           <p>
-            ShopSphere is your one-stop destination for fashion, electronics,
+            JustBuy is your one-stop destination for fashion, electronics,
             beauty, home essentials, and much more. We deliver premium products
             with the best shopping experience.
           </p>

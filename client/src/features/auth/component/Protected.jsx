@@ -1,53 +1,39 @@
-import React from "react";
-import {
-  Navigate,
-  Outlet,
-  useLocation,
-} from "react-router-dom";
-import { useSelector } from "react-redux";
+import React, { useEffect, useState } from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 
-const ProtectedRoute = ({
-  allowedRoles = [],
-}) => {
+const TOKEN_KEY = "accessToken";
+
+const getToken = () => {
+  return localStorage.getItem(TOKEN_KEY);
+};
+
+function ProtectedRoute() {
   const location = useLocation();
 
-  // =====================================================
-  // AUTH STATE
-  // =====================================================
+  const [token, setToken] = useState(() => getToken());
 
-  const authState = useSelector(
-    (state) => state.auth || {},
-  );
+  useEffect(() => {
+    const checkToken = () => {
+      setToken(getToken());
+    };
 
-  let currentUser = authState.user;
+    checkToken();
 
-  const token =
-    authState.accessToken ||
-    localStorage.getItem("accessToken");
+    const interval = setInterval(checkToken, 500);
 
-  // =====================================================
-  // USER FALLBACK
-  // =====================================================
+    const handleStorageChange = (event) => {
+      if (event.key === TOKEN_KEY) {
+        checkToken();
+      }
+    };
 
-  if (!currentUser) {
-    try {
-      const storedUser =
-        localStorage.getItem("user");
+    window.addEventListener("storage", handleStorageChange);
 
-      currentUser = storedUser
-        ? JSON.parse(storedUser)
-        : null;
-    } catch (error) {
-      console.error(
-        "Failed to parse stored user:",
-        error,
-      );
-    }
-  }
-
-  // =====================================================
-  // NOT LOGGED IN
-  // =====================================================
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
 
   if (!token) {
     return (
@@ -55,66 +41,13 @@ const ProtectedRoute = ({
         to="/login"
         replace
         state={{
-          from: location,
+          from: location.pathname,
         }}
       />
     );
   }
 
-  // =====================================================
-  // ROLE PROTECTION
-  // =====================================================
-
-  if (
-    allowedRoles.length > 0 &&
-    !allowedRoles.includes(
-      currentUser?.role,
-    )
-  ) {
-    // ---------------------------------------------------
-    // ADMIN
-    // ---------------------------------------------------
-
-    if (
-      currentUser?.role === "admin"
-    ) {
-      return (
-        <Navigate
-          to="/admin/dashboard"
-          replace
-        />
-      );
-    }
-
-    // ---------------------------------------------------
-    // SELLER
-    // ---------------------------------------------------
-
-    if (
-      currentUser?.role === "seller"
-    ) {
-      return (
-        <Navigate
-          to="/seller"
-          replace
-        />
-      );
-    }
-
-    // ---------------------------------------------------
-    // UNKNOWN / NORMAL FALLBACK
-    // ---------------------------------------------------
-
-    return (
-      <Navigate
-        to="/"
-        replace
-      />
-    );
-  }
-
   return <Outlet />;
-};
+}
 
 export default ProtectedRoute;
-

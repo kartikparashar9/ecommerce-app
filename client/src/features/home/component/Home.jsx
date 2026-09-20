@@ -74,9 +74,7 @@ const Home = () => {
       [...products]
         .filter(Boolean)
         .sort(
-          (a, b) =>
-            new Date(b?.createdAt || 0) -
-            new Date(a?.createdAt || 0),
+          (a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0),
         )
         .slice(0, 4),
     [products],
@@ -87,9 +85,7 @@ const Home = () => {
       [...products]
         .filter(Boolean)
         .sort(
-          (a, b) =>
-            new Date(b?.createdAt || 0) -
-            new Date(a?.createdAt || 0),
+          (a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0),
         )
         .slice(0, 3),
     [products],
@@ -122,10 +118,7 @@ const Home = () => {
     () =>
       [...products]
         .filter((product) => Number(product?.discount) > 0)
-        .sort(
-          (a, b) =>
-            Number(b?.discount || 0) - Number(a?.discount || 0),
-        )
+        .sort((a, b) => Number(b?.discount || 0) - Number(a?.discount || 0))
         .slice(0, 4),
     [products],
   );
@@ -150,8 +143,7 @@ const Home = () => {
 
     setActiveSlide(
       (current) =>
-        (current + direction + heroProducts.length) %
-        heroProducts.length,
+        (current + direction + heroProducts.length) % heroProducts.length,
     );
   };
 
@@ -175,9 +167,7 @@ const Home = () => {
             onClick={
               heroProduct?.slug
                 ? () =>
-                    navigate(
-                      `/product/${encodeURIComponent(heroProduct.slug)}`,
-                    )
+                    navigate(`/product/${encodeURIComponent(heroProduct.slug)}`)
                 : goToProducts
             }
           >
@@ -192,10 +182,7 @@ const Home = () => {
 
         <div className="home-hero__visual">
           {heroImage ? (
-            <img
-              src={heroImage}
-              alt={heroProduct?.name || "New product"}
-            />
+            <img src={heroImage} alt={heroProduct?.name || "New product"} />
           ) : (
             <PackageSearch size={72} />
           )}
@@ -207,11 +194,7 @@ const Home = () => {
                   <button
                     type="button"
                     key={getId(product) || index}
-                    className={
-                      index === activeSlide
-                        ? "active"
-                        : ""
-                    }
+                    className={index === activeSlide ? "active" : ""}
                     onClick={() => setActiveSlide(index)}
                     aria-label={`Show new product ${index + 1}`}
                   />
@@ -257,12 +240,11 @@ const Home = () => {
             {categoryState.error}
           </div>
         ) : !parentCategories.length ? (
-          <div className="home-state">
-            No main categories available.
-          </div>
+          <div className="home-state">No main categories available.</div>
         ) : (
           <div className="home-category-grid">
             {parentCategories.map((category) => {
+
               const image = resolveMediaUrl(category?.image);
 
               return (
@@ -276,14 +258,20 @@ const Home = () => {
                     {image ? (
                       <img
                         src={image}
-                        alt={category.name}
+                        alt={category?.name || "Category"}
                         loading="lazy"
                       />
                     ) : (
                       <PackageSearch size={32} />
                     )}
                   </div>
-                  <strong>{category.name}</strong>
+
+                  <strong>
+                    {category?.name ||
+                      category?.categoryName ||
+                      category?.title ||
+                      "Category"}
+                  </strong>
                 </button>
               );
             })}
@@ -315,16 +303,11 @@ const Home = () => {
         ) : dealProducts.length ? (
           <div className="home-product-grid">
             {dealProducts.map((product) => (
-              <ProductCard
-                key={getId(product)}
-                product={product}
-              />
+              <ProductCard key={getId(product)} product={product} />
             ))}
           </div>
         ) : (
-          <div className="home-state">
-            No discounted products available.
-          </div>
+          <div className="home-state">No discounted products available.</div>
         )}
       </section>
 
@@ -342,16 +325,11 @@ const Home = () => {
         {!productState.loading && latestProducts.length ? (
           <div className="home-product-grid">
             {latestProducts.map((product) => (
-              <ProductCard
-                key={getId(product)}
-                product={product}
-              />
+              <ProductCard key={getId(product)} product={product} />
             ))}
           </div>
         ) : !productState.loading ? (
-          <div className="home-state">
-            No products available yet.
-          </div>
+          <div className="home-state">No products available yet.</div>
         ) : null}
       </section>
     </main>

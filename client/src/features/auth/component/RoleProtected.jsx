@@ -1,100 +1,77 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useSelector } from "react-redux";
 
-const RoleProtected = ({ allowedRoles = [] }) => {
+const TOKEN_KEY = "accessToken";
+
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function getUser() {
+  try {
+    const user = localStorage.getItem("user");
+
+    return user ? JSON.parse(user) : null;
+  } catch {
+    return null;
+  }
+}
+
+function RoleProtected({ allowedRoles = [] }) {
   const location = useLocation();
 
-  // =====================================================
-  // AUTH STATE
-  // =====================================================
+  const [auth, setAuth] = useState(() => ({
+    token: getToken(),
+    user: getUser(),
+  }));
 
-  const authState = useSelector((state) => state.auth || {});
+  useEffect(() => {
+    const checkAuth = () => {
+      setAuth({
+        token: getToken(),
+        user: getUser(),
+      });
+    };
 
-  let currentUser = authState.user;
+    checkAuth();
 
-  const token = authState.accessToken || localStorage.getItem("accessToken");
+    const interval = setInterval(checkAuth, 500);
 
-  // =====================================================
-  // LOCAL STORAGE FALLBACK
-  // =====================================================
+    const handleStorageChange = (event) => {
+      if (event.key === TOKEN_KEY || event.key === "user") {
+        checkAuth();
+      }
+    };
 
-  if (!currentUser) {
-    try {
-      const storedUser = localStorage.getItem("user");
+    window.addEventListener("storage", handleStorageChange);
 
-      currentUser = storedUser ? JSON.parse(storedUser) : null;
-    } catch (error) {
-      console.error("Failed to parse stored user:", error);
-    }
-  }
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
 
-  // =====================================================
-  // NOT AUTHENTICATED
-  // =====================================================
-
-  if (!token) {
+  // No token
+  if (!auth.token) {
     return (
       <Navigate
         to="/login"
         replace
         state={{
-          from: location,
+          from: location.pathname,
         }}
       />
     );
   }
 
-  // =====================================================
-  // USER NOT YET AVAILABLE
-  //
-  // Do not immediately send authenticated users to "/".
-  // =====================================================
+  const role = auth.user?.role || auth.user?.user?.role;
 
-  if (!currentUser) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <p>Verifying account...</p>
-      </div>
-    );
-  }
-
-  // =====================================================
-  // ROLE NOT ALLOWED
-  // =====================================================
-
-  if (!allowedRoles.includes(currentUser.role)) {
-    // ---------------------------------------------------
-    // ADMIN
-    // ---------------------------------------------------
-
-    if (currentUser.role === "admin") {
-      return <Navigate to="/admin/dashboard" replace />;
-    }
-
-    // ---------------------------------------------------
-    // SELLER
-    // ---------------------------------------------------
-
-    if (currentUser.role === "seller") {
-      return <Navigate to="/seller" replace />;
-    }
-
-    // ---------------------------------------------------
-    // NORMAL USER / FALLBACK
-    // ---------------------------------------------------
-
+  // Wrong role
+  if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     return <Navigate to="/" replace />;
   }
 
   return <Outlet />;
-};
+}
 
 export default RoleProtected;
