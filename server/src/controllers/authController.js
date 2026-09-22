@@ -33,6 +33,12 @@ const {
 const signup = asyncHandler(async (req, res) => {
   const { name, email, phone, password, gender, role } = req.body;
 
+  // 1. Validate required fields
+  if (!name || !email || !phone || !password || !gender) {
+    throw new ApiError(400, "All required fields are required");
+  }
+
+  // 2. Check if user already exists
   const existingUser = await User.findOne({
     $or: [{ email }, { phone }],
   });
@@ -41,22 +47,27 @@ const signup = asyncHandler(async (req, res) => {
     throw new ApiError(409, "User already exists");
   }
 
+  // 3. Remove previous pending signup
   await PendingUser.deleteMany({
     $or: [{ email }, { phone }],
   });
 
+  // 4. Remove previous signup OTP
   await OTP.deleteMany({
     identifier: email,
     purpose: "signup",
   });
 
+  // 5. Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  // 6. Select avatar
   const avatar =
-    gender === "male"
+    gender.toLowerCase() === "male"
       ? "/avatars/male-avatar.jpg"
       : "/avatars/female-avatar.jpg";
 
+  // 7. Create pending user
   await PendingUser.create({
     name,
     email,
@@ -67,13 +78,16 @@ const signup = asyncHandler(async (req, res) => {
     role,
   });
 
+  // 8. Generate OTP
   const emailOTP = await createOTP(email, "email", "signup");
 
+  // 9. Send OTP
   await sendEmailOTP({
     to: email,
     otp: emailOTP.otp,
   });
 
+  // 10. Response
   return res
     .status(201)
     .json(new ApiResponse(201, "Email verification OTP sent successfully"));
@@ -402,9 +416,10 @@ const googleLogin = asyncHandler(async (req, res) => {
       email: payload.email,
       googleId: payload.sub,
       gender,
-      avatar: gender === "male"
-      ? "/avatars/male-avatar.jpg"
-      : "/avatars/female-avatar.jpg",
+      avatar:
+        gender === "male"
+          ? "/avatars/male-avatar.jpg"
+          : "/avatars/female-avatar.jpg",
       role,
       isEmailVerified: true,
     });
