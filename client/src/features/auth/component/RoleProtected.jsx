@@ -1,16 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 const TOKEN_KEY = "accessToken";
-
-function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
+const USER_KEY = "user";
 
 function getUser() {
   try {
-    const user = localStorage.getItem("user");
-
+    const user = localStorage.getItem(USER_KEY);
     return user ? JSON.parse(user) : null;
   } catch {
     return null;
@@ -20,39 +16,10 @@ function getUser() {
 function RoleProtected({ allowedRoles = [] }) {
   const location = useLocation();
 
-  const [auth, setAuth] = useState(() => ({
-    token: getToken(),
-    user: getUser(),
-  }));
+  const token = localStorage.getItem(TOKEN_KEY);
+  const user = getUser();
 
-  useEffect(() => {
-    const checkAuth = () => {
-      setAuth({
-        token: getToken(),
-        user: getUser(),
-      });
-    };
-
-    checkAuth();
-
-    const interval = setInterval(checkAuth, 500);
-
-    const handleStorageChange = (event) => {
-      if (event.key === TOKEN_KEY || event.key === "user") {
-        checkAuth();
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, []);
-
-  // No token
-  if (!auth.token) {
+  if (!token) {
     return (
       <Navigate
         to="/login"
@@ -64,9 +31,8 @@ function RoleProtected({ allowedRoles = [] }) {
     );
   }
 
-  const role = auth.user?.role || auth.user?.user?.role;
+  const role = user?.role || user?.user?.role;
 
-  // Wrong role
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     return <Navigate to="/" replace />;
   }
